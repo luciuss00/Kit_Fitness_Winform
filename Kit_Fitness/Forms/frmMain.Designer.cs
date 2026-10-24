@@ -21,7 +21,6 @@ namespace Kit_Fitness.Forms
             pnlRightActions = new FlowLayoutPanel();
             btnProfileAvatar = new Button();
             btnNotifications = new Button();
-            btnAiScan = new Button();
             btnQuickAdd = new Button();
             pnlNavMenu = new FlowLayoutPanel();
             btnNavHome = new Button();
@@ -58,12 +57,11 @@ namespace Kit_Fitness.Forms
             pnlRightActions.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             pnlRightActions.Controls.Add(btnProfileAvatar);
             pnlRightActions.Controls.Add(btnNotifications);
-            pnlRightActions.Controls.Add(btnAiScan);
             pnlRightActions.Controls.Add(btnQuickAdd);
             pnlRightActions.FlowDirection = FlowDirection.RightToLeft;
-            pnlRightActions.Location = new Point(930, 14);
+            pnlRightActions.Location = new Point(1034, 14);
             pnlRightActions.Name = "pnlRightActions";
-            pnlRightActions.Size = new Size(355, 46);
+            pnlRightActions.Size = new Size(251, 46);
             pnlRightActions.TabIndex = 2;
             // 
             // btnProfileAvatar
@@ -74,7 +72,7 @@ namespace Kit_Fitness.Forms
             btnProfileAvatar.FlatStyle = FlatStyle.Flat;
             btnProfileAvatar.Font = new Font("Segoe UI", 10.5F, FontStyle.Bold);
             btnProfileAvatar.ForeColor = Color.FromArgb(34, 76, 56);
-            btnProfileAvatar.Location = new Point(313, 2);
+            btnProfileAvatar.Location = new Point(209, 2);
             btnProfileAvatar.Margin = new Padding(6, 2, 0, 2);
             btnProfileAvatar.Name = "btnProfileAvatar";
             btnProfileAvatar.Size = new Size(42, 40);
@@ -90,29 +88,13 @@ namespace Kit_Fitness.Forms
             btnNotifications.FlatStyle = FlatStyle.Flat;
             btnNotifications.Font = new Font("Segoe UI", 11F);
             btnNotifications.ForeColor = Color.FromArgb(80, 80, 80);
-            btnNotifications.Location = new Point(265, 2);
+            btnNotifications.Location = new Point(161, 2);
             btnNotifications.Margin = new Padding(6, 2, 0, 2);
             btnNotifications.Name = "btnNotifications";
             btnNotifications.Size = new Size(42, 40);
             btnNotifications.TabIndex = 3;
             btnNotifications.Text = "🔔";
             btnNotifications.UseVisualStyleBackColor = false;
-            // 
-            // btnAiScan
-            // 
-            btnAiScan.BackColor = Color.White;
-            btnAiScan.Cursor = Cursors.Hand;
-            btnAiScan.FlatAppearance.BorderColor = Color.FromArgb(225, 165, 80);
-            btnAiScan.FlatStyle = FlatStyle.Flat;
-            btnAiScan.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
-            btnAiScan.ForeColor = Color.FromArgb(190, 110, 20);
-            btnAiScan.Location = new Point(154, 2);
-            btnAiScan.Margin = new Padding(6, 2, 0, 2);
-            btnAiScan.Name = "btnAiScan";
-            btnAiScan.Size = new Size(105, 40);
-            btnAiScan.TabIndex = 2;
-            btnAiScan.Text = "📷 Quét AI";
-            btnAiScan.UseVisualStyleBackColor = false;
             // 
             // btnQuickAdd
             // 
@@ -122,7 +104,7 @@ namespace Kit_Fitness.Forms
             btnQuickAdd.FlatStyle = FlatStyle.Flat;
             btnQuickAdd.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
             btnQuickAdd.ForeColor = Color.White;
-            btnQuickAdd.Location = new Point(12, 2);
+            btnQuickAdd.Location = new Point(19, 2);
             btnQuickAdd.Margin = new Padding(6, 2, 0, 2);
             btnQuickAdd.Name = "btnQuickAdd";
             btnQuickAdd.Size = new Size(136, 40);
@@ -139,7 +121,7 @@ namespace Kit_Fitness.Forms
             pnlNavMenu.Controls.Add(btnNavProfile);
             pnlNavMenu.Location = new Point(300, 14);
             pnlNavMenu.Name = "pnlNavMenu";
-            pnlNavMenu.Size = new Size(610, 48);
+            pnlNavMenu.Size = new Size(624, 48);
             pnlNavMenu.TabIndex = 1;
             // 
             // btnNavHome
@@ -314,7 +296,6 @@ namespace Kit_Fitness.Forms
         private System.Windows.Forms.FlowLayoutPanel pnlRightActions;
         private System.Windows.Forms.Button btnProfileAvatar;
         private System.Windows.Forms.Button btnNotifications;
-        private System.Windows.Forms.Button btnAiScan;
         private System.Windows.Forms.Button btnQuickAdd;
         private System.Windows.Forms.Panel pnlContent;
     }

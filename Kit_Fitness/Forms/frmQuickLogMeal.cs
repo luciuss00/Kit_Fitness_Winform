@@ -178,6 +178,7 @@ namespace Kit_Fitness.Forms
             };
         }
 
+        // **
         private void LoadFoodData()
         {
             try
@@ -254,7 +255,6 @@ namespace Kit_Fitness.Forms
             itemRow.NumWeight.ValueChanged += (s, ev) => CalculateEstimatedNutrition();
             itemRow.NumCalories.ValueChanged += (s, ev) => CalculateEstimatedNutrition();
 
-            // Khởi tạo unit ban đầu
             if (itemRow.CbFood.SelectedItem is Food initFood && !string.IsNullOrEmpty(initFood.Unit))
             {
                 itemRow.LblUnit.Text = initFood.Unit;
@@ -266,7 +266,6 @@ namespace Kit_Fitness.Forms
             pnlItemsList.Controls.Add(itemRow);
             PositionRightControls();
 
-            // Sử dụng SendToBack để đảm bảo thứ tự thêm từ trên xuống dưới (#1, #2, #3...)
             itemRow.SendToBack();
 
             CalculateEstimatedNutrition();
@@ -432,6 +431,7 @@ namespace Kit_Fitness.Forms
             }
         }
 
+        // **
         private void BtnSaveMeal_Click(object? sender, EventArgs e)
         {
             var mealItems = new List<(long foodId, decimal quantity, string? trafficLight)>();

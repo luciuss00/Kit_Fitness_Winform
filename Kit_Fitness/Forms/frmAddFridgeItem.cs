@@ -53,14 +53,23 @@ namespace Kit_Fitness.Forms
 
         private void BtnSave_Click(object? sender, EventArgs e)
         {
-            if (cbFood.SelectedItem is not Food food)
+            string foodName = cbFood.Text.Trim();
+            if (string.IsNullOrWhiteSpace(foodName))
             {
-                MessageBox.Show("Vui lòng chọn thực phẩm cần lưu trữ!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Vui lòng chọn hoặc nhập tên thực phẩm!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             try
             {
+                var food = _foods.FirstOrDefault(item =>
+                    item.Name.Equals(foodName, StringComparison.OrdinalIgnoreCase));
+                if (food is null)
+                {
+                    food = _mealLogService.FindOrCreateFood(foodName, unit: cbUnit.Text.Trim());
+                    _foods.Add(food);
+                }
+
                 long userId = AppSession.CurrentUserId;
                 string storage = rbChill.Checked ? "CHILL" : "FREEZER";
                 var expiryDate = DateOnly.FromDateTime(dtpExpiry.Value);

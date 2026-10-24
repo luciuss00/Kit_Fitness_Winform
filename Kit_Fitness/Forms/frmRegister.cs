@@ -14,6 +14,7 @@ public sealed partial class frmRegister : Form
         InitializeComponent();
     }
 
+    // **
     private void BtnRegister_Click(object? sender, EventArgs e)
     {
         var userName = txtName.Text.Trim();

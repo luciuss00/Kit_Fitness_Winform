@@ -1,4 +1,3 @@
-using Kit_Fitness.DTOs;
 using Kit_Fitness.Helpers;
 using Kit_Fitness.Services;
 using Kit_Fitness.UserControls;
@@ -58,11 +57,6 @@ namespace Kit_Fitness.Forms
             btnProfileAvatar.Click += (s, e) => NavigateTo(NavTab.Profile);
 
             btnQuickAdd.Click += (s, e) => OpenQuickLogMeal();
-
-            btnAiScan.Click += (s, e) =>
-            {
-                MessageBox.Show("Tính năng Quét AI đang được tối ưu hóa. Bạn có thể sử dụng '+ Nhập Món' để ghi bữa ăn ngay!", "Quét AI", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            };
 
             btnNotifications.Click += (s, e) =>
             {

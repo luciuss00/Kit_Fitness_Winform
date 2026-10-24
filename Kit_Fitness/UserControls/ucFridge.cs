@@ -1,21 +1,62 @@
 using Kit_Fitness.Forms;
 using Kit_Fitness.Helpers;
 using Kit_Fitness.Services;
+using Kit_Fitness.DTOs;
+using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace Kit_Fitness.UserControls
 {
     public partial class ucFridge : UserControl
     {
+        private const int CardGap = 16;
+        private const int InitialFridgeItemsToShow = 3;
+        private const int FridgeItemsPerPage = 3;
         private readonly FridgeService _fridgeService = new();
         private readonly MealLogService _mealLogService = new();
         private readonly GeminiService _geminiService = new();
         private readonly DashboardService _dashboardService = new();
 
+        private Panel? _pnlAiInfoBanner;
+        private readonly List<Panel> _aiCardPanels = new();
+        private int _visibleChillItems = InitialFridgeItemsToShow;
+        private int _visibleFreezerItems = InitialFridgeItemsToShow;
+        private readonly (string slot, string mealName)[] _diarySlots =
+        {
+            ("07:00", "Bữa Sáng Sớm"),
+            ("08:30", "Cà Phê & Ăn Nhẹ"),
+            ("10:00", "Bữa Phụ Sáng"),
+            ("12:00", "Bữa Trưa"),
+            ("14:30", "Bữa Phụ Chiều"),
+            ("16:30", "Năng Lượng Trước Tập"),
+            ("19:00", "Bữa Tối")
+        };
+
         public ucFridge()
         {
             InitializeComponent();
+
+            pnlChillCol.AutoScroll = true;
+            pnlFreezerCol.AutoScroll = true;
+
+            flpSuggestions.AutoScroll = false;
+            flpSuggestions.AutoSize = true;
+            flpSuggestions.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            flpSuggestions.WrapContents = true;
+            flpSuggestions.FlowDirection = FlowDirection.LeftToRight;
+            FitSuggestionsWidth();
+            pnlSuggestionsTab.AutoSize = true;
+            pnlSuggestionsTab.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            flpSuggestions.Dock = DockStyle.Top;
+            flpSuggestions.Margin = Padding.Empty;
+            flpSuggestions.Padding = new Padding(0, 0, 0, 24);
+
+            pnlSuggestionsTab.Resize += (s, e) => UpdateSuggestionsLayout();
+            pnlContentHolder.Resize += (s, e) => UpdateSuggestionsLayout();
+            Resize += (s, e) => UpdateSuggestionsLayout();
+
             WireEvents();
-            SwitchToTab(true); // Default to Fridge tab
+            SwitchToTab(true);
             LoadData();
         }
 
@@ -29,13 +70,91 @@ namespace Kit_Fitness.UserControls
 
             btnScanReceipt.Click += (s, e) =>
             {
-                MessageBox.Show("Tính năng Quét hóa đơn AI đang phân tích dữ liệu hóa đơn chợ...", "Quét hóa đơn AI", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                using var dlg = new frmScanReceipt();
+                dlg.ShowDialog(FindForm());
+                LoadData();
             };
 
             btnRefreshAi.Click += async (s, e) =>
             {
                 await LoadAiSuggestionsAsync();
             };
+        }
+
+        private void FitSuggestionsWidth()
+        {
+            var parent = flpSuggestions.Parent;
+            if (parent == null) return;
+
+            if (parent is ScrollableControl sc) sc.AutoScrollPosition = new Point(0, 0);
+
+            flpSuggestions.Dock = DockStyle.Top;
+            flpSuggestions.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+            flpSuggestions.Margin = Padding.Empty;
+            flpSuggestions.Padding = new Padding(0, 0, 0, 24); // khoảng đệm đáy
+            flpSuggestions.MaximumSize = new Size(parent.ClientSize.Width, 0);
+            flpSuggestions.Left = 0;
+            UpdateSuggestionsLayout();
+        }
+
+        private void UpdateSuggestionsLayout()
+        {
+            var parent = flpSuggestions.Parent;
+            if (parent == null) return;
+
+            int availableWidth = parent.ClientSize.Width;
+            if (availableWidth <= 0) return;
+
+            flpSuggestions.SuspendLayout();
+            flpSuggestions.Width = availableWidth;
+            flpSuggestions.MaximumSize = new Size(availableWidth, 0);
+
+            // 1. Label màu xanh thông tin calo sát với mép 2 bên panel
+            if (_pnlAiInfoBanner != null)
+            {
+                _pnlAiInfoBanner.Width = availableWidth;
+                _pnlAiInfoBanner.Margin = new Padding(0, 0, 0, 12);
+            }
+
+            // 2. Chiều dài card cho sát với mép panel gợi ý bữa cơm
+            if (_aiCardPanels.Count > 0)
+            {
+                int gap = CardGap; // 16
+                if (availableWidth >= 800)
+                {
+                    // 2 cột: Cột trái margin-right = gap; Cột phải margin-right = 0
+                    // Cột 1 + gap + Cột 2 = availableWidth -> sát khít mép panel, không có khoảng hở bên phải
+                    int col1Width = (availableWidth - gap) / 2;
+                    int col2Width = availableWidth - col1Width - gap;
+
+                    for (int i = 0; i < _aiCardPanels.Count; i++)
+                    {
+                        var card = _aiCardPanels[i];
+                        if (i % 2 == 0)
+                        {
+                            card.Width = col1Width;
+                            card.Margin = new Padding(0, 0, gap, gap);
+                        }
+                        else
+                        {
+                            card.Width = col2Width;
+                            card.Margin = new Padding(0, 0, 0, gap);
+                        }
+                    }
+                }
+                else
+                {
+                    for (int i = 0; i < _aiCardPanels.Count; i++)
+                    {
+                        var card = _aiCardPanels[i];
+                        card.Width = availableWidth;
+                        card.Margin = new Padding(0, 0, 0, gap);
+                    }
+                }
+            }
+
+            flpSuggestions.ResumeLayout(true);
+
         }
 
         private void SwitchToTab(bool isFridgeTab)
@@ -67,6 +186,13 @@ namespace Kit_Fitness.UserControls
             {
                 LoadData();
             }
+        }
+
+        private int GetCardWidth()
+        {
+            int available = pnlSuggestionsTab.ClientSize.Width > 0 ? pnlSuggestionsTab.ClientSize.Width : flpSuggestions.MaximumSize.Width;
+            if (available <= 0) available = 1150;
+            return Math.Max(400, (available - CardGap) / 2);
         }
 
         public void LoadData()
@@ -116,14 +242,54 @@ namespace Kit_Fitness.UserControls
             container.Controls.Clear();
             container.SuspendLayout();
 
+            int visibleCount = isChill ? _visibleChillItems : _visibleFreezerItems;
+            var visibleItems = items.Take(visibleCount).ToList();
             int yPos = 0;
-            foreach (var item in items)
+            foreach (var item in visibleItems)
             {
                 var card = CreateItemCard(item, isChill);
                 card.Location = new Point(0, yPos);
                 card.Width = container.Width;
                 container.Controls.Add(card);
                 yPos += card.Height + 10;
+            }
+
+            if (items.Count > InitialFridgeItemsToShow)
+            {
+                bool hasMoreItems = visibleItems.Count < items.Count;
+                var btnShowMore = new Button
+                {
+                    Text = hasMoreItems
+                        ? $"Xem tiếp ({Math.Min(FridgeItemsPerPage, items.Count - visibleItems.Count)})"
+                        : "Thu gọn",
+                    Location = new Point(0, yPos),
+                    Size = new Size(130, 34),
+                    BackColor = Color.FromArgb(240, 245, 240),
+                    ForeColor = Color.FromArgb(34, 76, 56),
+                    FlatStyle = FlatStyle.Flat,
+                    FlatAppearance = { BorderColor = Color.FromArgb(180, 210, 190) },
+                    Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold),
+                    Cursor = Cursors.Hand
+                };
+                btnShowMore.Click += (s, e) =>
+                {
+                    if (isChill)
+                    {
+                        _visibleChillItems = hasMoreItems
+                            ? Math.Min(items.Count, _visibleChillItems + FridgeItemsPerPage)
+                            : InitialFridgeItemsToShow;
+                    }
+                    else
+                    {
+                        _visibleFreezerItems = hasMoreItems
+                            ? Math.Min(items.Count, _visibleFreezerItems + FridgeItemsPerPage)
+                            : InitialFridgeItemsToShow;
+                    }
+
+                    RenderCardsList(container, items, isChill);
+                };
+                container.Controls.Add(btnShowMore);
+                yPos += btnShowMore.Height + 10;
             }
 
             container.Height = yPos + 10;
@@ -360,26 +526,52 @@ namespace Kit_Fitness.UserControls
 
         private async Task LoadAiSuggestionsAsync()
         {
+            FitSuggestionsWidth();
             flpSuggestions.Controls.Clear();
 
             // --- Hiển thị loading indicator ---
             var pnlLoading = new Panel
             {
-                Size = new Size(560, 120),
-                BackColor = Color.White,
-                Margin = new Padding(0, 0, 0, 10)
+                Size = new Size(flpSuggestions.MaximumSize.Width, 140),
+                BackColor = Color.FromArgb(235, 248, 240),
+                Margin = new Padding(0, 0, 0, 12)
             };
+
             var lblLoading = new Label
             {
-                Text = "✨ Gemini AI đang phân tích tủ lạnh và tính toán calo...\n\nVui lòng chờ giây lát",
-                Font = new Font("Segoe UI", 10F),
-                ForeColor = Color.FromArgb(60, 130, 100),
+                Text = "✨ Gemini AI đang phân tích tủ lạnh và tính toán calo...",
+                Font = new Font("Segoe UI Semibold", 11F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(34, 90, 60),
                 TextAlign = ContentAlignment.MiddleCenter,
-                Dock = DockStyle.Fill
+                Dock = DockStyle.Top,
+                Height = 70
             };
+
+            var lblWait = new Label
+            {
+                Text = "Vui lòng chờ giây lát",
+                Font = new Font("Segoe UI", 9.5F),
+                ForeColor = Color.FromArgb(90, 120, 105),
+                TextAlign = ContentAlignment.TopCenter,
+                Dock = DockStyle.Top,
+                Height = 28
+            };
+
+            var progress = new ProgressBar
+            {
+                Style = ProgressBarStyle.Marquee,
+                MarqueeAnimationSpeed = 30,
+                Size = new Size(320, 6),
+                Location = new Point((pnlLoading.Width - 320) / 2, 108),
+                Anchor = AnchorStyles.Top
+            };
+
+            pnlLoading.Controls.Add(progress);
+            pnlLoading.Controls.Add(lblWait);
             pnlLoading.Controls.Add(lblLoading);
             flpSuggestions.Controls.Add(pnlLoading);
             flpSuggestions.Refresh();
+
 
             try
             {
@@ -406,11 +598,12 @@ namespace Kit_Fitness.UserControls
 
                 // Xóa loading, render card
                 flpSuggestions.Controls.Clear();
+                _aiCardPanels.Clear();
 
                 // Banner thông tin calo
                 var pnlInfo = new Panel
                 {
-                    Size = new Size(560, 44),
+                    Size = new Size(flpSuggestions.MaximumSize.Width, 44),
                     BackColor = Color.FromArgb(235, 248, 240),
                     Margin = new Padding(0, 0, 0, 12)
                 };
@@ -423,13 +616,18 @@ namespace Kit_Fitness.UserControls
                     TextAlign = ContentAlignment.MiddleCenter
                 };
                 pnlInfo.Controls.Add(lblInfo);
+                _pnlAiInfoBanner = pnlInfo;
                 flpSuggestions.Controls.Add(pnlInfo);
+                flpSuggestions.SetFlowBreak(pnlInfo, true);
 
                 foreach (var suggestion in suggestions)
                 {
                     var card = CreateSuggestionCard(suggestion);
+                    _aiCardPanels.Add(card);
                     flpSuggestions.Controls.Add(card);
                 }
+
+                UpdateSuggestionsLayout();
             }
             catch (InvalidOperationException ex) when (ex.Message.Contains("API Key"))
             {
@@ -520,6 +718,9 @@ namespace Kit_Fitness.UserControls
 
         private Panel CreateSuggestionCard(AiMealSuggestion suggestion)
         {
+            int w = GetCardWidth();
+            int inner = w - 36;
+
             // Màu tag theo loại
             var (tagFg, tagBg) = suggestion.Tag switch
             {
@@ -532,8 +733,8 @@ namespace Kit_Fitness.UserControls
             var pnl = new Panel
             {
                 BackColor = Color.White,
-                Size = new Size(550, 230),
-                Margin = new Padding(0, 0, 20, 20),
+                Size = new Size(w, 230),
+                Margin = new Padding(0, 0, CardGap, CardGap),
                 Padding = new Padding(18)
             };
 
@@ -550,13 +751,14 @@ namespace Kit_Fitness.UserControls
 
             var lblCal = new Label
             {
-                Text = $"{suggestion.Calories}\nKcal",
+                Text = $"{suggestion.Calories} Kcal",
                 Font = new Font("Segoe UI", 12F, FontStyle.Bold),
                 ForeColor = Color.FromArgb(34, 76, 56),
                 TextAlign = ContentAlignment.TopRight,
-                Location = new Point(pnl.Width - 100, 16),
-                Anchor = AnchorStyles.Top | AnchorStyles.Right,
-                Size = new Size(80, 45)
+                AutoSize = false,
+                Size = new Size(120, 26),
+                Location = new Point(w - 18 - 120, 14),
+                Anchor = AnchorStyles.Top | AnchorStyles.Right
             };
 
             var lblTitle = new Label
@@ -564,8 +766,10 @@ namespace Kit_Fitness.UserControls
                 Text = suggestion.Title,
                 Font = new Font("Segoe UI", 11.5F, FontStyle.Bold),
                 ForeColor = Color.FromArgb(30, 40, 35),
+                AutoEllipsis = true,
                 Location = new Point(18, 48),
-                Size = new Size(420, 26)
+                Size = new Size(inner, 28),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
             };
 
             var lblDesc = new Label
@@ -573,8 +777,9 @@ namespace Kit_Fitness.UserControls
                 Text = suggestion.Description,
                 Font = new Font("Segoe UI", 8.8F),
                 ForeColor = Color.FromArgb(100, 100, 95),
-                Location = new Point(18, 76),
-                Size = new Size(510, 36)
+                Location = new Point(18, 78),
+                Size = new Size(inner, 36),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
             };
 
             var lblServings = new Label
@@ -591,7 +796,8 @@ namespace Kit_Fitness.UserControls
             {
                 BackColor = Color.FromArgb(250, 247, 240),
                 Location = new Point(18, 138),
-                Size = new Size(514, 28)
+                Size = new Size(inner, 28),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
             };
 
             var lblMacroText = new Label
@@ -614,7 +820,8 @@ namespace Kit_Fitness.UserControls
                 FlatStyle = FlatStyle.Flat,
                 FlatAppearance = { BorderSize = 0 },
                 Location = new Point(18, 172),
-                Size = new Size(514, 42),
+                Size = new Size(inner, 42),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
                 Cursor = Cursors.Hand
             };
             btnCook.Click += (s, e) => ShowCookingDialog(suggestion);
@@ -636,6 +843,11 @@ namespace Kit_Fitness.UserControls
         /// </summary>
         private void ShowCookingDialog(AiMealSuggestion suggestion)
         {
+            var fridgeItems = _fridgeService.GetAllItems(AppSession.CurrentUserId)
+                .Where(item => item.DaysRemaining >= 0)
+                .ToList();
+            var ingredientUsage = BuildIngredientUsage(suggestion, fridgeItems);
+
             using var dlg = new Form
             {
                 Text = $"🍽 {suggestion.Title}",
@@ -689,10 +901,39 @@ namespace Kit_Fitness.UserControls
             dlg.Controls.Add(lblMacro);
             y += 38;
 
+            var lblTimeTitle = new Label
+            {
+                Text = "Ghi vào mốc giờ:",
+                Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(34, 76, 56),
+                Location = new Point(18, y + 4),
+                AutoSize = true
+            };
+            var cbTimeSlot = new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Font = new Font("Segoe UI", 9F),
+                Location = new Point(150, y),
+                Size = new Size(392, 28)
+            };
+            foreach (var (slot, mealName) in _diarySlots)
+            {
+                cbTimeSlot.Items.Add($"{slot} - {mealName}");
+            }
+            cbTimeSlot.SelectedIndex = Array.FindIndex(_diarySlots, option =>
+                TimeSpan.TryParse(option.slot, out var slotTime) && slotTime >= DateTime.Now.TimeOfDay);
+            if (cbTimeSlot.SelectedIndex < 0)
+            {
+                cbTimeSlot.SelectedIndex = _diarySlots.Length - 1;
+            }
+            dlg.Controls.Add(lblTimeTitle);
+            dlg.Controls.Add(cbTimeSlot);
+            y += 38;
+
             // Nguyên liệu
             var lblIngTitle = new Label
             {
-                Text = "📋 Nguyên liệu cần dùng:",
+                Text = "📋 Nguyên liệu sẽ trừ khỏi tủ lạnh:",
                 Font = new Font("Segoe UI", 9.5F, FontStyle.Bold),
                 ForeColor = Color.FromArgb(34, 76, 56),
                 Location = new Point(18, y),
@@ -702,8 +943,15 @@ namespace Kit_Fitness.UserControls
             y += 24;
 
             string ingText = suggestion.Ingredients.Count > 0
-                ? string.Join("\n", suggestion.Ingredients.Select(i => $"  • {i}"))
-                : "  • Dựa trên nguyên liệu có sẵn trong tủ lạnh";
+                ? string.Join("\n", suggestion.Ingredients.Select(ingredient =>
+                {
+                    var usage = ingredientUsage.FirstOrDefault(entry =>
+                        entry.Ingredient.Equals(ingredient, StringComparison.Ordinal));
+                    return usage.Item is not null
+                        ? $"  • {usage.Item.FoodName}: {usage.Quantity:0.##} {usage.Item.Unit} sẽ được trừ"
+                        : $"  • {ingredient} (không có trong tủ lạnh, không trừ)";
+                }))
+                : "  • AI không cung cấp danh sách nguyên liệu; không có nguyên liệu nào bị trừ.";
             var lblIng = new Label
             {
                 Text = ingText,
@@ -764,16 +1012,31 @@ namespace Kit_Fitness.UserControls
                 {
                     long userId = AppSession.CurrentUserId;
                     var today = DateOnly.FromDateTime(DateTime.Now);
-                    string timeSlot = DateTime.Now.Hour < 10 ? "08:00"
-                                    : DateTime.Now.Hour < 14 ? "12:00"
-                                    : DateTime.Now.Hour < 18 ? "15:00" : "19:00";
-                    string mealType = DateTime.Now.Hour < 10 ? "Bữa Sáng"
-                                    : DateTime.Now.Hour < 14 ? "Bữa Trưa"
-                                    : DateTime.Now.Hour < 18 ? "Bữa Xế" : "Bữa Tối";
+                    var selectedSlot = _diarySlots[cbTimeSlot.SelectedIndex];
+                    var mealFood = _mealLogService.FindOrCreateFood(
+                        suggestion.Title,
+                        suggestion.Calories,
+                        "g",
+                        suggestion.Protein,
+                        suggestion.Carb,
+                        suggestion.Fat);
+
+                    _mealLogService.AddMeal(
+                        userId,
+                        today,
+                        selectedSlot.mealName,
+                        selectedSlot.slot,
+                        new List<(long foodId, decimal quantity)> { (mealFood.Id, 100m) });
+
+                    foreach (var usage in ingredientUsage.Where(entry => entry.Item is not null))
+                    {
+                        _fridgeService.UseItem(usage.Item!.Id, usage.Quantity);
+                    }
 
                     MessageBox.Show(
                         $"✅ Đã ghi nhận '{suggestion.Title}'\n" +
-                        $"vào {mealType} ({timeSlot}) — {suggestion.Calories} kcal",
+                        $"vào {selectedSlot.mealName} ({selectedSlot.slot}) — {suggestion.Calories} kcal\n" +
+                        $"Đã trừ {ingredientUsage.Count(entry => entry.Item is not null)} nguyên liệu trong tủ lạnh.",
                         "Ghi Nhận Thành Công",
                         MessageBoxButtons.OK,
                         MessageBoxIcon.Information);
@@ -804,10 +1067,86 @@ namespace Kit_Fitness.UserControls
             dlg.CancelButton = btnClose;
             dlg.ClientSize = new Size(560, y + 58);
 
-            dlg.ShowDialog(FindForm());
+            if (dlg.ShowDialog(FindForm()) == DialogResult.OK)
+            {
+                LoadData();
+            }
+        }
+
+        private List<(string Ingredient, FridgeItemDisplay? Item, decimal Quantity)> BuildIngredientUsage(
+            AiMealSuggestion suggestion,
+            List<FridgeItemDisplay> fridgeItems)
+        {
+            var result = new List<(string Ingredient, FridgeItemDisplay? Item, decimal Quantity)>();
+            var usedItemIds = new HashSet<long>();
+
+            foreach (string ingredient in suggestion.Ingredients)
+            {
+                string ingredientName = ingredient.Split(':', 2)[0].Trim();
+                var item = fridgeItems
+                    .Where(candidate =>
+                        ingredient.Contains(candidate.FoodName, StringComparison.OrdinalIgnoreCase) ||
+                        candidate.FoodName.Contains(ingredientName, StringComparison.OrdinalIgnoreCase))
+                    .OrderByDescending(candidate => candidate.FoodName.Length)
+                    .FirstOrDefault(candidate => !usedItemIds.Contains(candidate.Id));
+
+                if (item is null)
+                {
+                    result.Add((ingredient, null, 0));
+                    continue;
+                }
+
+                decimal quantity = ParseIngredientQuantity(ingredient, item.Unit, item.Quantity);
+                usedItemIds.Add(item.Id);
+                result.Add((ingredient, item, quantity));
+            }
+
+            return result;
+        }
+
+        private static decimal ParseIngredientQuantity(string ingredient, string unit, decimal available)
+        {
+            var matches = Regex.Matches(ingredient, @"(?<amount>\d+(?:[.,]\d+)?)\s*(?<unit>[\p{L}]+)?");
+            var match = matches.Cast<Match>().LastOrDefault(candidate => candidate.Groups["amount"].Success);
+            decimal defaultQuantity = unit.Equals("g", StringComparison.OrdinalIgnoreCase) ||
+                                     unit.Equals("ml", StringComparison.OrdinalIgnoreCase)
+                ? 100m
+                : 1m;
+
+            if (match is null || !decimal.TryParse(
+                    match.Groups["amount"].Value.Replace(',', '.'),
+                    NumberStyles.Number,
+                    CultureInfo.InvariantCulture,
+                    out decimal quantity))
+            {
+                return Math.Min(defaultQuantity, available);
+            }
+
+            string requestedUnit = match.Groups["unit"].Value.ToLowerInvariant();
+            string stockUnit = unit.ToLowerInvariant();
+            if (requestedUnit == "kg" && stockUnit == "g") quantity *= 1000m;
+            else if (requestedUnit == "g" && stockUnit == "kg") quantity /= 1000m;
+            else if (requestedUnit == "l" && stockUnit == "ml") quantity *= 1000m;
+            else if (requestedUnit == "ml" && stockUnit == "l") quantity /= 1000m;
+            else if (!string.IsNullOrEmpty(requestedUnit) && requestedUnit != stockUnit)
+            {
+                quantity = defaultQuantity;
+            }
+
+            return Math.Min(Math.Max(quantity, 0.01m), available);
         }
 
         private void pnlMain_Paint(object sender, PaintEventArgs e)
+        {
+
+        }
+
+        private void flpSuggestions_Paint(object sender, PaintEventArgs e)
+        {
+
+        }
+
+        private void btnManualAdd_Click(object sender, EventArgs e)
         {
 
         }

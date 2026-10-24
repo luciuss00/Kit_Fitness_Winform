@@ -243,14 +243,20 @@ namespace Kit_Fitness.Services
         /// <summary>
         /// Tìm kiếm hoặc tạo mới món ăn tùy chỉnh trong DB nếu người dùng gõ tên món mới
         /// </summary>
-        public Food FindOrCreateFood(string foodName, int calories = 150, string unit = "g")
+        public Food FindOrCreateFood(
+            string foodName,
+            int calories = 150,
+            string unit = "g",
+            decimal protein = 0,
+            decimal carbs = 0,
+            decimal fat = 0)
         {
             return _foodRepo.FindOrCreate(
                 foodName,
                 calories,
-                protein: 0,
-                carbs: 0,
-                fat: 0,
+                protein: protein,
+                carbs: carbs,
+                fat: fat,
                 unit: unit,
                 createByUserId: AppSession.CurrentUserId);
         }

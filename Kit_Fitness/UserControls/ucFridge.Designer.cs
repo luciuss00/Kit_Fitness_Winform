@@ -73,7 +73,7 @@ namespace Kit_Fitness.UserControls
             pnlMain.Location = new Point(0, 0);
             pnlMain.Name = "pnlMain";
             pnlMain.Padding = new Padding(25, 15, 25, 20);
-            pnlMain.Size = new Size(1200, 850);
+            pnlMain.Size = new Size(1214, 793);
             pnlMain.TabIndex = 0;
             pnlMain.Paint += pnlMain_Paint;
             // 
@@ -85,7 +85,7 @@ namespace Kit_Fitness.UserControls
             pnlContentHolder.Controls.Add(pnlFridgeTab);
             pnlContentHolder.Location = new Point(25, 130);
             pnlContentHolder.Name = "pnlContentHolder";
-            pnlContentHolder.Size = new Size(1150, 1280);
+            pnlContentHolder.Size = new Size(1164, 1280);
             pnlContentHolder.TabIndex = 2;
             // 
             // pnlSuggestionsTab
@@ -95,7 +95,7 @@ namespace Kit_Fitness.UserControls
             pnlSuggestionsTab.Dock = DockStyle.Top;
             pnlSuggestionsTab.Location = new Point(0, 680);
             pnlSuggestionsTab.Name = "pnlSuggestionsTab";
-            pnlSuggestionsTab.Size = new Size(1150, 600);
+            pnlSuggestionsTab.Size = new Size(1164, 600);
             pnlSuggestionsTab.TabIndex = 1;
             pnlSuggestionsTab.Visible = false;
             // 
@@ -106,8 +106,9 @@ namespace Kit_Fitness.UserControls
             flpSuggestions.Location = new Point(0, 85);
             flpSuggestions.Name = "flpSuggestions";
             flpSuggestions.Padding = new Padding(0, 15, 0, 0);
-            flpSuggestions.Size = new Size(1150, 515);
+            flpSuggestions.Size = new Size(1164, 515);
             flpSuggestions.TabIndex = 1;
+            flpSuggestions.Paint += flpSuggestions_Paint;
             // 
             // pnlAiBanner
             // 
@@ -119,7 +120,7 @@ namespace Kit_Fitness.UserControls
             pnlAiBanner.Location = new Point(0, 0);
             pnlAiBanner.Name = "pnlAiBanner";
             pnlAiBanner.Padding = new Padding(20, 15, 20, 15);
-            pnlAiBanner.Size = new Size(1150, 85);
+            pnlAiBanner.Size = new Size(1164, 85);
             pnlAiBanner.TabIndex = 0;
             // 
             // btnRefreshAi
@@ -131,7 +132,7 @@ namespace Kit_Fitness.UserControls
             btnRefreshAi.FlatStyle = FlatStyle.Flat;
             btnRefreshAi.Font = new Font("Segoe UI Semibold", 9.5F, FontStyle.Bold);
             btnRefreshAi.ForeColor = Color.White;
-            btnRefreshAi.Location = new Point(950, 22);
+            btnRefreshAi.Location = new Point(964, 22);
             btnRefreshAi.Name = "btnRefreshAi";
             btnRefreshAi.Size = new Size(180, 40);
             btnRefreshAi.TabIndex = 2;
@@ -167,7 +168,7 @@ namespace Kit_Fitness.UserControls
             pnlFridgeTab.Dock = DockStyle.Top;
             pnlFridgeTab.Location = new Point(0, 0);
             pnlFridgeTab.Name = "pnlFridgeTab";
-            pnlFridgeTab.Size = new Size(1150, 680);
+            pnlFridgeTab.Size = new Size(1164, 680);
             pnlFridgeTab.TabIndex = 0;
             // 
             // tlpColumns
@@ -182,7 +183,7 @@ namespace Kit_Fitness.UserControls
             tlpColumns.Name = "tlpColumns";
             tlpColumns.RowCount = 1;
             tlpColumns.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            tlpColumns.Size = new Size(1150, 620);
+            tlpColumns.Size = new Size(1164, 620);
             tlpColumns.TabIndex = 1;
             // 
             // pnlChillCol
@@ -195,7 +196,7 @@ namespace Kit_Fitness.UserControls
             pnlChillCol.Location = new Point(0, 0);
             pnlChillCol.Margin = new Padding(0, 0, 10, 0);
             pnlChillCol.Name = "pnlChillCol";
-            pnlChillCol.Size = new Size(565, 620);
+            pnlChillCol.Size = new Size(572, 620);
             pnlChillCol.TabIndex = 0;
             // 
             // pnlChillItems
@@ -204,7 +205,7 @@ namespace Kit_Fitness.UserControls
             pnlChillItems.AutoSize = true;
             pnlChillItems.Location = new Point(0, 50);
             pnlChillItems.Name = "pnlChillItems";
-            pnlChillItems.Size = new Size(565, 460);
+            pnlChillItems.Size = new Size(572, 460);
             pnlChillItems.TabIndex = 3;
             // 
             // lblChillSub
@@ -213,7 +214,7 @@ namespace Kit_Fitness.UserControls
             lblChillSub.AutoSize = true;
             lblChillSub.Font = new Font("Segoe UI", 8.5F);
             lblChillSub.ForeColor = Color.FromArgb(130, 130, 125);
-            lblChillSub.Location = new Point(324, 15);
+            lblChillSub.Location = new Point(331, 15);
             lblChillSub.Name = "lblChillSub";
             lblChillSub.Size = new Size(241, 20);
             lblChillSub.TabIndex = 2;
@@ -250,10 +251,10 @@ namespace Kit_Fitness.UserControls
             pnlFreezerCol.Controls.Add(lblFreezerBadge);
             pnlFreezerCol.Controls.Add(lblFreezerTitle);
             pnlFreezerCol.Dock = DockStyle.Fill;
-            pnlFreezerCol.Location = new Point(585, 0);
+            pnlFreezerCol.Location = new Point(592, 0);
             pnlFreezerCol.Margin = new Padding(10, 0, 0, 0);
             pnlFreezerCol.Name = "pnlFreezerCol";
-            pnlFreezerCol.Size = new Size(565, 620);
+            pnlFreezerCol.Size = new Size(572, 620);
             pnlFreezerCol.TabIndex = 1;
             // 
             // pnlFreezerItems
@@ -262,7 +263,7 @@ namespace Kit_Fitness.UserControls
             pnlFreezerItems.AutoSize = true;
             pnlFreezerItems.Location = new Point(0, 50);
             pnlFreezerItems.Name = "pnlFreezerItems";
-            pnlFreezerItems.Size = new Size(565, 460);
+            pnlFreezerItems.Size = new Size(572, 460);
             pnlFreezerItems.TabIndex = 3;
             // 
             // lblFreezerSub
@@ -271,7 +272,7 @@ namespace Kit_Fitness.UserControls
             lblFreezerSub.AutoSize = true;
             lblFreezerSub.Font = new Font("Segoe UI", 8.5F);
             lblFreezerSub.ForeColor = Color.FromArgb(130, 130, 125);
-            lblFreezerSub.Location = new Point(380, 15);
+            lblFreezerSub.Location = new Point(387, 15);
             lblFreezerSub.Name = "lblFreezerSub";
             lblFreezerSub.Size = new Size(168, 20);
             lblFreezerSub.TabIndex = 2;
@@ -313,7 +314,7 @@ namespace Kit_Fitness.UserControls
             pnlWarningBanner.Margin = new Padding(0, 0, 0, 15);
             pnlWarningBanner.Name = "pnlWarningBanner";
             pnlWarningBanner.Padding = new Padding(16, 12, 16, 12);
-            pnlWarningBanner.Size = new Size(1150, 60);
+            pnlWarningBanner.Size = new Size(1164, 60);
             pnlWarningBanner.TabIndex = 0;
             // 
             // btnCookNow
@@ -325,7 +326,7 @@ namespace Kit_Fitness.UserControls
             btnCookNow.FlatStyle = FlatStyle.Flat;
             btnCookNow.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             btnCookNow.ForeColor = Color.FromArgb(160, 100, 20);
-            btnCookNow.Location = new Point(1020, 12);
+            btnCookNow.Location = new Point(1034, 12);
             btnCookNow.Name = "btnCookNow";
             btnCookNow.Size = new Size(110, 34);
             btnCookNow.TabIndex = 2;
@@ -361,7 +362,7 @@ namespace Kit_Fitness.UserControls
             pnlTabs.Dock = DockStyle.Top;
             pnlTabs.Location = new Point(25, 80);
             pnlTabs.Name = "pnlTabs";
-            pnlTabs.Size = new Size(1129, 45);
+            pnlTabs.Size = new Size(1143, 45);
             pnlTabs.TabIndex = 1;
             // 
             // btnTabSuggestions
@@ -403,7 +404,7 @@ namespace Kit_Fitness.UserControls
             pnlHeader.Dock = DockStyle.Top;
             pnlHeader.Location = new Point(25, 15);
             pnlHeader.Name = "pnlHeader";
-            pnlHeader.Size = new Size(1129, 65);
+            pnlHeader.Size = new Size(1143, 65);
             pnlHeader.TabIndex = 0;
             // 
             // btnManualAdd
@@ -415,12 +416,13 @@ namespace Kit_Fitness.UserControls
             btnManualAdd.FlatStyle = FlatStyle.Flat;
             btnManualAdd.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
             btnManualAdd.ForeColor = Color.FromArgb(34, 76, 56);
-            btnManualAdd.Location = new Point(984, 12);
+            btnManualAdd.Location = new Point(998, 12);
             btnManualAdd.Name = "btnManualAdd";
             btnManualAdd.Size = new Size(140, 40);
             btnManualAdd.TabIndex = 3;
             btnManualAdd.Text = "+ Cất thủ công";
             btnManualAdd.UseVisualStyleBackColor = false;
+            btnManualAdd.Click += btnManualAdd_Click;
             // 
             // btnScanReceipt
             // 
@@ -431,11 +433,11 @@ namespace Kit_Fitness.UserControls
             btnScanReceipt.FlatStyle = FlatStyle.Flat;
             btnScanReceipt.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold);
             btnScanReceipt.ForeColor = Color.White;
-            btnScanReceipt.Location = new Point(804, 12);
+            btnScanReceipt.Location = new Point(850, 12);
             btnScanReceipt.Name = "btnScanReceipt";
-            btnScanReceipt.Size = new Size(165, 40);
+            btnScanReceipt.Size = new Size(133, 40);
             btnScanReceipt.TabIndex = 2;
-            btnScanReceipt.Text = "📷 Quét hóa đơn AI";
+            btnScanReceipt.Text = "📷 Quét AI";
             btnScanReceipt.UseVisualStyleBackColor = false;
             // 
             // lblTitle
@@ -466,7 +468,7 @@ namespace Kit_Fitness.UserControls
             AutoScaleMode = AutoScaleMode.Font;
             Controls.Add(pnlMain);
             Name = "ucFridge";
-            Size = new Size(1200, 850);
+            Size = new Size(1214, 793);
             pnlMain.ResumeLayout(false);
             pnlMain.PerformLayout();
             pnlContentHolder.ResumeLayout(false);

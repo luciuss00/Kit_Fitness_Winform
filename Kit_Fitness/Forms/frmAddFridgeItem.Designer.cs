@@ -194,9 +194,11 @@ namespace Kit_Fitness.Forms
             // 
             cbFood.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
             cbFood.AutoCompleteSource = AutoCompleteSource.ListItems;
+            cbFood.DropDownStyle = ComboBoxStyle.DropDown;
             cbFood.Font = new Font("Segoe UI", 10F);
             cbFood.FormattingEnabled = true;
             cbFood.Location = new Point(20, 40);
+            cbFood.MaxDropDownItems = 7;
             cbFood.Name = "cbFood";
             cbFood.Size = new Size(380, 31);
             cbFood.TabIndex = 1;
@@ -210,7 +212,7 @@ namespace Kit_Fitness.Forms
             lblFood.Name = "lblFood";
             lblFood.Size = new Size(132, 21);
             lblFood.TabIndex = 0;
-            lblFood.Text = "Chọn Thực Phẩm";
+            lblFood.Text = "Chọn hoặc nhập thực phẩm";
             // 
             // frmAddFridgeItem
             // 
