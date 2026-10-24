@@ -242,6 +242,112 @@ namespace Kit_Fitness.Services
             }
         }
 
+        public async Task<AiMealPhotoAnalysis> AnalyzeMealPhotoAsync(string imagePath)
+        {
+            if (string.IsNullOrWhiteSpace(ApiKey))
+                throw new InvalidOperationException("Chưa cấu hình Gemini API Key (ApiSettings:ApiKey).");
+
+            if (!File.Exists(imagePath))
+                throw new FileNotFoundException("Không tìm thấy ảnh món ăn.", imagePath);
+
+            byte[] imageBytes = PrepareImageBytes(imagePath, out string mimeType);
+            string prompt =
+                "Phân tích ảnh món ăn này. Tên món foodName bắt buộc viết bằng tiếng Việt tự nhiên, dùng tên món phổ biến tại Việt Nam; " +
+                "nếu ảnh có chữ tiếng nước ngoài thì dịch tên món sang tiếng Việt, không trả tên tiếng Anh. " +
+                "Ước lượng món chính nhìn thấy, khối lượng phần ăn trong ảnh theo gram và tổng calo của đúng phần ăn đó. " +
+                "Ước lượng protein, carbs và fat trên mỗi 100g. Nếu ảnh có nhiều món, đặt tên mô tả ngắn gọn cho cả phần ăn. " +
+                "Chỉ trả về một JSON object, không markdown, theo cấu trúc: " +
+                "{\"foodName\":\"...\",\"quantityGrams\":250,\"estimatedCalories\":400," +
+                "\"proteinPer100g\":15,\"carbsPer100g\":20,\"fatPer100g\":8}.";
+
+            var requestBody = new
+            {
+                contents = new[]
+                {
+                    new
+                    {
+                        parts = new object[]
+                        {
+                            new { text = prompt },
+                            new { inlineData = new { mimeType, data = Convert.ToBase64String(imageBytes) } }
+                        }
+                    }
+                },
+                generationConfig = new
+                {
+                    temperature = 0.2,
+                    maxOutputTokens = 1024,
+                    responseMimeType = "application/json"
+                }
+            };
+
+            string jsonBody = JsonSerializer.Serialize(requestBody);
+            string[] modelsToTry = { ModelId, "gemini-2.0-flash", "gemini-1.5-flash" };
+            string lastError = string.Empty;
+
+            foreach (string model in modelsToTry.Distinct())
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Post, string.Format(BaseUrl, model))
+                {
+                    Content = new StringContent(jsonBody, Encoding.UTF8, "application/json")
+                };
+                request.Headers.Add("x-goog-api-key", ApiKey);
+
+                HttpResponseMessage response;
+                try
+                {
+                    response = await _httpClient.SendAsync(request);
+                }
+                catch (TaskCanceledException)
+                {
+                    throw new TimeoutException("Gemini AI phản hồi quá lâu khi phân tích món ăn.");
+                }
+
+                using (response)
+                {
+                    string responseJson = await response.Content.ReadAsStringAsync();
+                    if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    {
+                        lastError = responseJson;
+                        continue;
+                    }
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        throw new HttpRequestException(
+                            $"Gemini API lỗi [{(int)response.StatusCode} {response.StatusCode}]: {responseJson}");
+                    }
+
+                    var root = JsonNode.Parse(responseJson);
+                    var candidate = root?["candidates"]?[0];
+                    string? text = null;
+                    if (candidate?["content"]?["parts"] is JsonArray parts)
+                    {
+                        text = string.Concat(parts
+                            .Where(part => part?["thought"]?.GetValue<bool>() != true)
+                            .Select(part => part?["text"]?.GetValue<string>()));
+                    }
+
+                    if (string.IsNullOrWhiteSpace(text))
+                    {
+                        throw new InvalidOperationException("AI không nhận diện được món ăn trong ảnh.");
+                    }
+
+                    text = Regex.Replace(text, @"^\s*```(?:json)?\s*", "", RegexOptions.IgnoreCase);
+                    text = Regex.Replace(text, @"\s*```\s*$", "").Trim();
+                    var analysis = JsonSerializer.Deserialize<AiMealPhotoAnalysis>(text, _jsonOptions);
+                    if (analysis is null || string.IsNullOrWhiteSpace(analysis.FoodName) || analysis.QuantityGrams <= 0)
+                    {
+                        throw new JsonException("AI trả về tên món hoặc khối lượng không hợp lệ.");
+                    }
+
+                    return analysis;
+                }
+            }
+
+            throw new HttpRequestException($"Không thể kết nối đến Gemini API. Lỗi: {lastError}");
+        }
+
         private static byte[] PrepareImageBytes(string imagePath, out string mimeType)
         {
             string ext = Path.GetExtension(imagePath).ToLowerInvariant();

@@ -89,7 +89,13 @@ namespace Kit_Fitness.UserControls
 
             btnAiSnap.Click += (s, e) =>
             {
-                MessageBox.Show("Tính năng Quét AI đang được hoàn thiện. Bạn có thể sử dụng 'Nhập Món Ăn Nhanh' để ghi lại bữa ăn ngay lập tức từ cơ sở dữ liệu thật!", "Quét AI", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                using var dlg = new frmAiMealLog(_currentDate);
+                var owner = FindForm();
+                var result = owner is null ? dlg.ShowDialog() : dlg.ShowDialog(owner);
+                if (result == DialogResult.OK)
+                {
+                    LoadData();
+                }
             };
 
             // Vẽ đường timeline dọc
