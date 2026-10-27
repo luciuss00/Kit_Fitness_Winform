@@ -74,6 +74,7 @@ namespace Kit_Fitness.Forms
             }
         }
 
+        // **
         private async Task AnalyzeImageAsync()
         {
             if (string.IsNullOrWhiteSpace(_imagePath) || !File.Exists(_imagePath))
@@ -112,6 +113,7 @@ namespace Kit_Fitness.Forms
             }
         }
 
+        // **
         private void BtnSave_Click(object? sender, EventArgs e)
         {
             string foodName = txtFoodName.Text.Trim();

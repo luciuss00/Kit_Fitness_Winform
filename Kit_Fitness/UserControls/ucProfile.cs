@@ -20,6 +20,7 @@ namespace Kit_Fitness.UserControls
             LoadData();
         }
 
+        // **
         public void LoadData()
         {
             try
@@ -183,6 +184,7 @@ namespace Kit_Fitness.UserControls
             e.Graphics.FillRectangle(brFat, wProtein + wCarb, 0, wFat, h);
         }
 
+        // **
         private void CompleteSurveyAndSave()
         {
             try

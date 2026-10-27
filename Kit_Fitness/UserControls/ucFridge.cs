@@ -195,6 +195,7 @@ namespace Kit_Fitness.UserControls
             return Math.Max(400, (available - CardGap) / 2);
         }
 
+        // **
         public void LoadData()
         {
             try
@@ -296,6 +297,7 @@ namespace Kit_Fitness.UserControls
             container.ResumeLayout(true);
         }
 
+        // **
         private Panel CreateItemCard(FridgeItemDisplay item, bool isChill)
         {
             var pnl = new Panel
@@ -524,6 +526,7 @@ namespace Kit_Fitness.UserControls
             return true;
         }
 
+        // **
         private async Task LoadAiSuggestionsAsync()
         {
             FitSuggestionsWidth();
@@ -841,6 +844,7 @@ namespace Kit_Fitness.UserControls
         /// Dialog hiển thị nguyên liệu + hướng dẫn nấu ăn do AI tạo ra,
         /// và cho phép ghi nhận bữa ăn vào nhật ký
         /// </summary>
+        // **
         private void ShowCookingDialog(AiMealSuggestion suggestion)
         {
             var fridgeItems = _fridgeService.GetAllItems(AppSession.CurrentUserId)

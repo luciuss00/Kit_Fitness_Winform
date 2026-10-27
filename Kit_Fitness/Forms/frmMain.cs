@@ -207,6 +207,7 @@ namespace Kit_Fitness.Forms
             UpdateNotificationBadge();
         }
 
+        // **
         public void UpdateNotificationBadge()
         {
             try

@@ -139,6 +139,7 @@ namespace Kit_Fitness.UserControls
             }
         }
 
+        // **
         public void LoadData()
         {
             try
@@ -198,6 +199,7 @@ namespace Kit_Fitness.UserControls
             }
         }
 
+        // **
         private void BuildTimeline(long userId)
         {
             pnlTimelineList.Controls.Clear();
@@ -250,6 +252,7 @@ namespace Kit_Fitness.UserControls
             pnlTimelineList.Invalidate();
         }
 
+        // **
         private Panel CreateActiveMealCard(string slot, string mealName, List<LogItem> items, int remainingCalories, long userId)
         {
             var pnl = new Panel

@@ -83,6 +83,7 @@ namespace Kit_Fitness.UserControls
             btnUpdateWeight.Click += BtnUpdateWeight_Click;
         }
 
+        // **
         public void LoadData()
         {
             try
@@ -200,6 +201,7 @@ namespace Kit_Fitness.UserControls
             }
         }
 
+        // **
         private void BtnWaterPlus_Click(object? sender, EventArgs e)
         {
             try
@@ -213,6 +215,7 @@ namespace Kit_Fitness.UserControls
             }
         }
 
+        // **
         private void BtnWaterMinus_Click(object? sender, EventArgs e)
         {
             try
@@ -226,6 +229,7 @@ namespace Kit_Fitness.UserControls
             }
         }
 
+        // **
         private void BtnUpdateWeight_Click(object? sender, EventArgs e)
         {
             string input = Microsoft.VisualBasic.Interaction.InputBox(
