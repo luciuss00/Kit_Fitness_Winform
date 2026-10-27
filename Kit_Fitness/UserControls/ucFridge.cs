@@ -205,8 +205,8 @@ namespace Kit_Fitness.UserControls
                 // Update tab title with count
                 btnTabFridge.Text = $"🧊 Tủ Lạnh Của Tôi ({allItems.Count})";
 
-                var chillItems = allItems.Where(i => i.StorageType == "CHILL").ToList();
-                var freezerItems = allItems.Where(i => i.StorageType == "FREEZER").ToList();
+                var chillItems = allItems.Where(i => i.StorageType == "CHILL" || i.StorageType == "ROOM").ToList();
+                var freezerItems = allItems.Where(i => i.StorageType == "FREEZER" || i.StorageType == "FREEZE").ToList();
 
                 lblChillBadge.Text = $"{chillItems.Count} món";
                 lblFreezerBadge.Text = $"{freezerItems.Count} món";

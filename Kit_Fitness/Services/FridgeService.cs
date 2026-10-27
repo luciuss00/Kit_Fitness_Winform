@@ -34,8 +34,8 @@ namespace Kit_Fitness.Services
         {
             var all = _fridgeRepo.GetByUser(userId);
             return (
-                all.Count(i => i.StorageType == "CHILL"),
-                all.Count(i => i.StorageType == "FREEZER")
+                all.Count(i => i.StorageType == "CHILL" || i.StorageType == "ROOM"),
+                all.Count(i => i.StorageType == "FREEZER" || i.StorageType == "FREEZE")
             );
         }
 

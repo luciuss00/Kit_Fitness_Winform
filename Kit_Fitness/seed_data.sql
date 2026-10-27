@@ -73,8 +73,8 @@ INSERT INTO [daily_logs] ([id], [user_id], [log_date], [meal_type], [total_calor
 (3, 1, CAST(GETDATE() AS DATE), N'Bữa Tối', 520, 45, 40, 14, 'GREEN', GETDATE(), GETDATE(), 0),
 (4, 1, CAST(DATEADD(day, -1, GETDATE()) AS DATE), N'Bữa Sáng', 420, 30, 50, 10, 'GREEN', GETDATE(), GETDATE(), 0),
 (5, 1, CAST(DATEADD(day, -1, GETDATE()) AS DATE), N'Bữa Trưa', 700, 50, 70, 20, 'YELLOW', GETDATE(), GETDATE(), 0),
-(6, 2, CAST(GETDATE() AS DATE), N'Bữa Sáng', 500, 40, 50, 15, 'GREEN', GETDATE(), GETDATE(), 0),
-(7, 2, CAST(GETDATE() AS DATE), N'Bữa Trưa', 750, 60, 70, 22, 'GREEN', GETDATE(), GETDATE(), 0),
+(6, 2, CAST(DATEADD(day, -2, GETDATE()) AS DATE), N'Bữa Sáng', 500, 40, 50, 15, 'GREEN', GETDATE(), GETDATE(), 0),
+(7, 2, CAST(DATEADD(day, -2, GETDATE()) AS DATE), N'Bữa Trưa', 750, 60, 70, 22, 'GREEN', GETDATE(), GETDATE(), 0),
 (8, 3, CAST(GETDATE() AS DATE), N'Bữa Sáng', 350, 25, 40, 8, 'GREEN', GETDATE(), GETDATE(), 0),
 (9, 3, CAST(GETDATE() AS DATE), N'Bữa Trưa', 500, 38, 45, 12, 'GREEN', GETDATE(), GETDATE(), 0),
 (10, 4, CAST(GETDATE() AS DATE), N'Bữa Sáng', 480, 36, 48, 14, 'GREEN', GETDATE(), GETDATE(), 0);

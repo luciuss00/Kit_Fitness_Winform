@@ -31,18 +31,44 @@ namespace Kit_Fitness.Services
             int targetCarbs = (int)(targetCal * 0.40 / 4);   // 4 cal/g carb
             int targetFat = (int)(targetCal * 0.30 / 9);     // 9 cal/g fat
 
+            // Tính tổng calo và macro thực tế từ các món ăn (LogItems) của các bữa trong ngày
+            int totalCal = 0;
+            decimal totalProtein = 0;
+            decimal totalCarbs = 0;
+            decimal totalFat = 0;
+
+            foreach (var log in logs)
+            {
+                var activeItems = log.LogItems.Where(li => !li.IsDeleted).ToList();
+                if (activeItems.Count > 0)
+                {
+                    totalCal += activeItems.Sum(li => NutritionHelper.RoundToInt(NutritionHelper.ScaleByUnit(li.Food?.Calories ?? 0, li.Quantity, li.Food?.Unit)));
+                    totalProtein += activeItems.Sum(li => NutritionHelper.ScaleByUnit(li.Food?.Protein ?? 0m, li.Quantity, li.Food?.Unit));
+                    totalCarbs += activeItems.Sum(li => NutritionHelper.ScaleByUnit(li.Food?.Carbs ?? 0m, li.Quantity, li.Food?.Unit));
+                    totalFat += activeItems.Sum(li => NutritionHelper.ScaleByUnit(li.Food?.Fat ?? 0m, li.Quantity, li.Food?.Unit));
+                }
+                else if (log.TotalCalories > 0 && !logs.Any(other => other.LogItems.Any(li => !li.IsDeleted)))
+                {
+                    // Chỉ dùng TotalCalories lưu sẵn nếu toàn bộ ngày không có item chi tiết nào
+                    totalCal += log.TotalCalories;
+                    totalProtein += log.TotalProtein;
+                    totalCarbs += log.TotalCarbs;
+                    totalFat += log.TotalFat;
+                }
+            }
+
             return new DailyNutritionSummary
             {
-                TotalCalories = logs.Sum(l => l.TotalCalories),
-                TotalProtein = logs.Sum(l => l.TotalProtein),
-                TotalCarbs = logs.Sum(l => l.TotalCarbs),
-                TotalFat = logs.Sum(l => l.TotalFat),
+                TotalCalories = totalCal,
+                TotalProtein = (int)Math.Round(totalProtein),
+                TotalCarbs = (int)Math.Round(totalCarbs),
+                TotalFat = (int)Math.Round(totalFat),
                 TargetCalories = targetCal,
                 TargetProtein = targetProtein,
                 TargetCarbs = targetCarbs,
                 TargetFat = targetFat,
                 CaloriesBurned = burned,
-                CaloriesConsumed = logs.Sum(l => l.TotalCalories)
+                CaloriesConsumed = totalCal
             };
         }
 

@@ -94,8 +94,8 @@ public sealed partial class frmExpiringFoodNotification : Form
         };
 
         // Icon ngăn lưu trữ
-        string storageIcon = item.StorageType == "FREEZER" ? "❄️" : "🧊";
-        string storageName = item.StorageType == "FREEZER" ? "Ngăn đông" : "Ngăn mát";
+        string storageIcon = (item.StorageType == "FREEZER" || item.StorageType == "FREEZE") ? "❄️" : (item.StorageType == "ROOM" ? "🧺" : "🧊");
+        string storageName = (item.StorageType == "FREEZER" || item.StorageType == "FREEZE") ? "Ngăn đông" : (item.StorageType == "ROOM" ? "Nhiệt độ phòng" : "Ngăn mát");
 
         var lblIcon = new Label
         {

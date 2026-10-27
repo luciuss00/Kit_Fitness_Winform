@@ -98,7 +98,6 @@ namespace Kit_Fitness.Services
 
             string jsonBody = JsonSerializer.Serialize(requestBody);
             string[] modelsToTry = { ModelId, "gemini-3.8-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash" };
-            HttpResponseMessage? response = null;
             string lastError = "";
 
             foreach (var model in modelsToTry.Distinct())
@@ -110,45 +109,49 @@ namespace Kit_Fitness.Services
                 };
                 request.Headers.Add("x-goog-api-key", ApiKey);
 
+                HttpResponseMessage response;
                 try
                 {
                     response = await _httpClient.SendAsync(request);
                 }
                 catch (TaskCanceledException)
                 {
-                    throw new TimeoutException("AI phản hồi quá lâu, vui lòng thử lại.");
-                }
-
-                if (response.StatusCode == System.Net.HttpStatusCode.NotFound ||
-                    response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
-                {
-                    lastError = await response.Content.ReadAsStringAsync();
-                    response.Dispose();
+                    lastError = $"Timeout phản hồi từ model {model}.";
                     continue;
                 }
 
-                break;
+                using (response)
+                {
+                    string responseJson = await response.Content.ReadAsStringAsync();
+
+                    if (response.StatusCode == System.Net.HttpStatusCode.NotFound ||
+                        response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                    {
+                        lastError = responseJson;
+                        continue;
+                    }
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        lastError = $"Gemini API [{model}] lỗi [{(int)response.StatusCode} {response.StatusCode}]: {responseJson}";
+                        continue;
+                    }
+
+                    try
+                    {
+                        var suggestions = ParseGeminiResponse(responseJson);
+                        var withinLimit = suggestions.Where(s => s.Calories <= caloriesRemaining).ToList();
+                        return withinLimit.Count > 0 ? withinLimit : suggestions;
+                    }
+                    catch (Exception ex)
+                    {
+                        lastError = $"Lỗi đọc kết quả AI từ model {model}: {ex.Message}";
+                        continue;
+                    }
+                }
             }
 
-            if (response == null)
-            {
-                throw new HttpRequestException($"Không thể kết nối đến Gemini API. Lỗi: {lastError}");
-            }
-
-            using (response)
-            {
-                string responseJson = await response.Content.ReadAsStringAsync();
-
-                if (!response.IsSuccessStatusCode)
-                    throw new HttpRequestException(
-                        $"Gemini API lỗi [{(int)response.StatusCode} {response.StatusCode}]: {responseJson}");
-
-                var suggestions = ParseGeminiResponse(responseJson);
-
-                // Lọc lại theo calo vì model có thể không tuân thủ prompt
-                var withinLimit = suggestions.Where(s => s.Calories <= caloriesRemaining).ToList();
-                return withinLimit.Count > 0 ? withinLimit : suggestions;
-            }
+            throw new HttpRequestException($"Không thể lấy gợi ý món ăn qua Gemini AI. Lỗi: {lastError}");
         }
 
         /// <summary>
@@ -217,16 +220,16 @@ namespace Kit_Fitness.Services
                 generationConfig = new
                 {
                     temperature = 0.2,
-                    maxOutputTokens = 4096,
-                    responseMimeType = "application/json"
+                    maxOutputTokens = 8192,
+                    responseMimeType = "application/json",
+                    thinkingConfig = new { thinkingLevel = "minimal" }
                 }
             };
 
             string jsonBody = JsonSerializer.Serialize(requestBody);
 
-            // Thử model mặc định (gemini-3.8-flash), nếu 404/503 thì fallback sang các model flash phổ biến
+            // Thử model mặc định (gemini-3.8-flash), nếu 404/503/lỗi JSON thì fallback sang các model flash phổ biến
             string[] modelsToTry = { ModelId, "gemini-3.8-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash" };
-            HttpResponseMessage? response = null;
             string lastError = "";
 
             foreach (var model in modelsToTry.Distinct())
@@ -238,41 +241,47 @@ namespace Kit_Fitness.Services
                 };
                 request.Headers.Add("x-goog-api-key", ApiKey);
 
+                HttpResponseMessage response;
                 try
                 {
                     response = await _httpClient.SendAsync(request);
                 }
                 catch (TaskCanceledException)
                 {
-                    throw new TimeoutException("Gemini AI phản hồi quá lâu khi đọc hóa đơn, vui lòng thử lại.");
-                }
-
-                if (response.StatusCode == System.Net.HttpStatusCode.NotFound ||
-                    response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
-                {
-                    lastError = await response.Content.ReadAsStringAsync();
-                    response.Dispose();
+                    lastError = $"Timeout phản hồi từ model {model}.";
                     continue;
                 }
 
-                break;
+                using (response)
+                {
+                    string responseJson = await response.Content.ReadAsStringAsync();
+
+                    if (response.StatusCode == System.Net.HttpStatusCode.NotFound ||
+                        response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                    {
+                        lastError = responseJson;
+                        continue;
+                    }
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        lastError = $"Gemini API [{model}] lỗi [{(int)response.StatusCode} {response.StatusCode}]: {responseJson}";
+                        continue;
+                    }
+
+                    try
+                    {
+                        return ParseReceiptResponse(responseJson);
+                    }
+                    catch (Exception ex)
+                    {
+                        lastError = $"Lỗi đọc hóa đơn từ model {model}: {ex.Message}";
+                        continue;
+                    }
+                }
             }
 
-            if (response == null)
-            {
-                throw new HttpRequestException($"Không thể kết nối đến Gemini API. Lỗi: {lastError}");
-            }
-
-            using (response)
-            {
-                string responseJson = await response.Content.ReadAsStringAsync();
-
-                if (!response.IsSuccessStatusCode)
-                    throw new HttpRequestException(
-                        $"Gemini API lỗi [{(int)response.StatusCode} {response.StatusCode}]: {responseJson}");
-
-                return ParseReceiptResponse(responseJson);
-            }
+            throw new HttpRequestException($"Không thể phân tích hóa đơn qua Gemini API. Lỗi: {lastError}");
         }
 
         public async Task<AiMealPhotoAnalysis> AnalyzeMealPhotoAsync(string imagePath)
@@ -309,8 +318,9 @@ namespace Kit_Fitness.Services
                 generationConfig = new
                 {
                     temperature = 0.2,
-                    maxOutputTokens = 1024,
-                    responseMimeType = "application/json"
+                    maxOutputTokens = 4096,
+                    responseMimeType = "application/json",
+                    thinkingConfig = new { thinkingLevel = "minimal" }
                 }
             };
 
@@ -333,7 +343,8 @@ namespace Kit_Fitness.Services
                 }
                 catch (TaskCanceledException)
                 {
-                    throw new TimeoutException("Gemini AI phản hồi quá lâu khi phân tích món ăn.");
+                    lastError = $"Timeout phản hồi từ model {model}.";
+                    continue;
                 }
 
                 using (response)
@@ -348,38 +359,55 @@ namespace Kit_Fitness.Services
 
                     if (!response.IsSuccessStatusCode)
                     {
-                        throw new HttpRequestException(
-                            $"Gemini API lỗi [{(int)response.StatusCode} {response.StatusCode}]: {responseJson}");
+                        lastError = $"Gemini API [{model}] lỗi [{(int)response.StatusCode} {response.StatusCode}]: {responseJson}";
+                        continue;
                     }
 
-                    var root = JsonNode.Parse(responseJson);
-                    var candidate = root?["candidates"]?[0];
-                    string? text = null;
-                    if (candidate?["content"]?["parts"] is JsonArray parts)
+                    try
                     {
-                        text = string.Concat(parts
-                            .Where(part => part?["thought"]?.GetValue<bool>() != true)
-                            .Select(part => part?["text"]?.GetValue<string>()));
-                    }
+                        var root = JsonNode.Parse(responseJson);
+                        var candidate = root?["candidates"]?[0];
+                        string? text = null;
+                        if (candidate?["content"]?["parts"] is JsonArray parts)
+                        {
+                            text = string.Concat(parts
+                                .Where(part => part?["thought"]?.GetValue<bool>() != true)
+                                .Select(part => part?["text"]?.GetValue<string>()));
+                        }
 
-                    if (string.IsNullOrWhiteSpace(text))
+                        if (string.IsNullOrWhiteSpace(text))
+                        {
+                            lastError = $"Model {model} không trả về nội dung.";
+                            continue;
+                        }
+
+                        text = Regex.Replace(text, @"^\s*```(?:json)?\s*", "", RegexOptions.IgnoreCase);
+                        text = Regex.Replace(text, @"\s*```\s*$", "").Trim();
+
+                        var jsonMatch = Regex.Match(text, @"\{[\s\S]*\}");
+                        if (jsonMatch.Success)
+                        {
+                            text = jsonMatch.Value;
+                        }
+
+                        var analysis = JsonSerializer.Deserialize<AiMealPhotoAnalysis>(text, _jsonOptions);
+                        if (analysis is null || string.IsNullOrWhiteSpace(analysis.FoodName) || analysis.QuantityGrams <= 0)
+                        {
+                            lastError = $"Model {model} trả về cấu trúc phân tích không hợp lệ.";
+                            continue;
+                        }
+
+                        return analysis;
+                    }
+                    catch (Exception ex)
                     {
-                        throw new InvalidOperationException("AI không nhận diện được món ăn trong ảnh.");
+                        lastError = $"Lỗi phân tích món ăn từ model {model}: {ex.Message}";
+                        continue;
                     }
-
-                    text = Regex.Replace(text, @"^\s*```(?:json)?\s*", "", RegexOptions.IgnoreCase);
-                    text = Regex.Replace(text, @"\s*```\s*$", "").Trim();
-                    var analysis = JsonSerializer.Deserialize<AiMealPhotoAnalysis>(text, _jsonOptions);
-                    if (analysis is null || string.IsNullOrWhiteSpace(analysis.FoodName) || analysis.QuantityGrams <= 0)
-                    {
-                        throw new JsonException("AI trả về tên món hoặc khối lượng không hợp lệ.");
-                    }
-
-                    return analysis;
                 }
             }
 
-            throw new HttpRequestException($"Không thể kết nối đến Gemini API. Lỗi: {lastError}");
+            throw new HttpRequestException($"Không thể phân tích món ăn qua Gemini AI. Lỗi: {lastError}");
         }
 
         private static byte[] PrepareImageBytes(string imagePath, out string mimeType)
