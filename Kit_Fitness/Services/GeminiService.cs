@@ -16,8 +16,9 @@ namespace Kit_Fitness.Services
     {
         private readonly string? ApiKey;
 
-        // Đổi cho đúng tên model trong AI Studio của bạn
-        private const string ModelId = "gemini-3.1-flash-lite";
+        // Model Gemini mặc định (nâng cấp lên gemini-3.8-flash)
+        public const string DefaultModelId = "gemini-3.8-flash";
+        public string ModelId { get; }
 
         // v1beta hỗ trợ đầy đủ generationConfig (responseMimeType, thinkingConfig...)
         private const string BaseUrl =
@@ -46,6 +47,15 @@ namespace Kit_Fitness.Services
             {
                 ApiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY");
             }
+
+            string? configuredModel = configuration["ApiSettings:ModelId"];
+            ModelId = string.IsNullOrWhiteSpace(configuredModel) ? DefaultModelId : configuredModel;
+        }
+
+        public GeminiService(string? apiKey, string? modelId = null)
+        {
+            ApiKey = apiKey;
+            ModelId = string.IsNullOrWhiteSpace(modelId) ? DefaultModelId : modelId;
         }
 
         /// <summary>
@@ -82,29 +92,47 @@ namespace Kit_Fitness.Services
                     maxOutputTokens = 8192,
                     responseMimeType = "application/json",
                     // Tắt thinking để không tốn token và JSON không bị cắt cụt.
-                    // Nếu model báo lỗi 400 vì dòng này thì xoá nó đi.
                     thinkingConfig = new { thinkingLevel = "minimal" }
                 }
             };
 
             string jsonBody = JsonSerializer.Serialize(requestBody);
-            string url = string.Format(BaseUrl, ModelId);
+            string[] modelsToTry = { ModelId, "gemini-3.8-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash" };
+            HttpResponseMessage? response = null;
+            string lastError = "";
 
-            using var request = new HttpRequestMessage(HttpMethod.Post, url)
+            foreach (var model in modelsToTry.Distinct())
             {
-                Content = new StringContent(jsonBody, Encoding.UTF8, "application/json")
-            };
-            // Key để trong header, không lộ trên URL/log
-            request.Headers.Add("x-goog-api-key", ApiKey);
+                string url = string.Format(BaseUrl, model);
+                using var request = new HttpRequestMessage(HttpMethod.Post, url)
+                {
+                    Content = new StringContent(jsonBody, Encoding.UTF8, "application/json")
+                };
+                request.Headers.Add("x-goog-api-key", ApiKey);
 
-            HttpResponseMessage response;
-            try
-            {
-                response = await _httpClient.SendAsync(request);
+                try
+                {
+                    response = await _httpClient.SendAsync(request);
+                }
+                catch (TaskCanceledException)
+                {
+                    throw new TimeoutException("AI phản hồi quá lâu, vui lòng thử lại.");
+                }
+
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound ||
+                    response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                {
+                    lastError = await response.Content.ReadAsStringAsync();
+                    response.Dispose();
+                    continue;
+                }
+
+                break;
             }
-            catch (TaskCanceledException)
+
+            if (response == null)
             {
-                throw new TimeoutException("AI phản hồi quá lâu, vui lòng thử lại.");
+                throw new HttpRequestException($"Không thể kết nối đến Gemini API. Lỗi: {lastError}");
             }
 
             using (response)
@@ -196,8 +224,8 @@ namespace Kit_Fitness.Services
 
             string jsonBody = JsonSerializer.Serialize(requestBody);
 
-            // Thử model mặc định, nếu 404 thì fallback sang các model flash phổ biến
-            string[] modelsToTry = new[] { ModelId, "gemini-2.0-flash", "gemini-1.5-flash" };
+            // Thử model mặc định (gemini-3.8-flash), nếu 404/503 thì fallback sang các model flash phổ biến
+            string[] modelsToTry = { ModelId, "gemini-3.8-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash" };
             HttpResponseMessage? response = null;
             string lastError = "";
 
@@ -219,7 +247,8 @@ namespace Kit_Fitness.Services
                     throw new TimeoutException("Gemini AI phản hồi quá lâu khi đọc hóa đơn, vui lòng thử lại.");
                 }
 
-                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound ||
+                    response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
                 {
                     lastError = await response.Content.ReadAsStringAsync();
                     response.Dispose();
@@ -286,7 +315,7 @@ namespace Kit_Fitness.Services
             };
 
             string jsonBody = JsonSerializer.Serialize(requestBody);
-            string[] modelsToTry = { ModelId, "gemini-2.0-flash", "gemini-1.5-flash" };
+            string[] modelsToTry = { ModelId, "gemini-3.8-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash" };
             string lastError = string.Empty;
 
             foreach (string model in modelsToTry.Distinct())
@@ -310,7 +339,8 @@ namespace Kit_Fitness.Services
                 using (response)
                 {
                     string responseJson = await response.Content.ReadAsStringAsync();
-                    if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    if (response.StatusCode == System.Net.HttpStatusCode.NotFound ||
+                        response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
                     {
                         lastError = responseJson;
                         continue;

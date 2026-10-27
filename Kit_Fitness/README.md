@@ -33,10 +33,12 @@ File `appsettings.json` chứa mật khẩu/cấu hình cá nhân nên mặc đ�
        "DefaultConnection": "Server=localhost;Database=KitFitness;Trusted_Connection=True;TrustServerCertificate=True;"
      },
      "ApiSettings": {
-       "ApiKey": "YOUR_GEMINI_API_KEY_HERE"
+       "ApiKey": "YOUR_GEMINI_API_KEY_HERE",
+       "ModelId": "gemini-3.8-flash"
      }
    }
    ```
+   *(Hệ thống hỗ trợ model mặc định là `gemini-3.8-flash` với cơ chế tự động fallback thông minh sang các bản flash khác nếu mạng gặp sự cố).*
    *(Nếu dùng SQL Express, đổi `Server=localhost` thành `Server=.\\SQLEXPRESS`)*.
 
 ### Bước 3: Build & Chạy ứng dụng
