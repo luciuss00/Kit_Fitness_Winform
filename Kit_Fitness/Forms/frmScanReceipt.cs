@@ -85,6 +85,7 @@ namespace Kit_Fitness.Forms
             }
         }
 
+        // **
         private async Task RunScanAsync()
         {
             if (string.IsNullOrWhiteSpace(_imagePath) || !File.Exists(_imagePath))
@@ -147,6 +148,7 @@ namespace Kit_Fitness.Forms
             Close();
         }
 
+        // **
         private int SaveSelectedItems()
         {
             if (_lastScannedItems.Count == 0) return 0;

@@ -38,6 +38,7 @@ namespace Kit_Fitness.Forms
             }
         }
 
+        // **
         private void LoadDailyCaloriesInfo()
         {
             try

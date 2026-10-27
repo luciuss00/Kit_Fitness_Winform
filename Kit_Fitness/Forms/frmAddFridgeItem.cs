@@ -35,6 +35,7 @@ namespace Kit_Fitness.Forms
             };
         }
 
+        // **
         private void LoadFoods()
         {
             _foods = _mealLogService.GetAllFoods(AppSession.CurrentUserId);
@@ -51,6 +52,7 @@ namespace Kit_Fitness.Forms
             };
         }
 
+        // **
         private void BtnSave_Click(object? sender, EventArgs e)
         {
             string foodName = cbFood.Text.Trim();
