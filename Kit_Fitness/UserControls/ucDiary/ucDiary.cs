@@ -293,7 +293,7 @@ namespace Kit_Fitness.UserControls
                 AutoSize = true
             };
 
-            int mealCalories = items.Sum(i => (int)((i.Food?.Calories ?? 0) * (i.Quantity / 100m)));
+            int mealCalories = items.Sum(i => NutritionHelper.RoundToInt(NutritionHelper.ScaleByUnit(i.Food?.Calories ?? 0, i.Quantity, i.Food?.Unit)));
             var lblCal = new Label
             {
                 Text = $"{mealCalories}",
@@ -343,7 +343,7 @@ namespace Kit_Fitness.UserControls
 
             foreach (var item in itemsToRender)
             {
-                int itemCal = (int)((item.Food?.Calories ?? 0) * (item.Quantity / 100m));
+                int itemCal = NutritionHelper.RoundToInt(NutritionHelper.ScaleByUnit(item.Food?.Calories ?? 0, item.Quantity, item.Food?.Unit));
 
                 // Traffic light indicator cho từng món ăn từ DB (hoặc tính toán nếu dữ liệu cũ chưa có)
                 string light = item.TrafficLight?.Trim().ToUpperInvariant() ?? "";
@@ -481,9 +481,9 @@ namespace Kit_Fitness.UserControls
                 BackColor = Color.FromArgb(250, 248, 244)
             };
 
-            decimal p = items.Sum(i => (i.Food?.Protein ?? 0) * (i.Quantity / 100m));
-            decimal c = items.Sum(i => (i.Food?.Carbs ?? 0) * (i.Quantity / 100m));
-            decimal f = items.Sum(i => (i.Food?.Fat ?? 0) * (i.Quantity / 100m));
+            decimal p = items.Sum(i => NutritionHelper.ScaleByUnit(i.Food?.Protein ?? 0m, i.Quantity, i.Food?.Unit));
+            decimal c = items.Sum(i => NutritionHelper.ScaleByUnit(i.Food?.Carbs ?? 0m, i.Quantity, i.Food?.Unit));
+            decimal f = items.Sum(i => NutritionHelper.ScaleByUnit(i.Food?.Fat ?? 0m, i.Quantity, i.Food?.Unit));
 
             var lblMacros = new Label
             {

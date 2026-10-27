@@ -15,7 +15,7 @@ public static class NutritionHelper
     {
         if (string.IsNullOrWhiteSpace(unit)) return false;
         var u = unit.Trim().ToLowerInvariant();
-        return u == "g" || u == "ml" || u == "gram" || u == "gr";
+        return u == "g" || u == "ml" || u == "gram" || u == "gr" || u == "gam";
     }
 
     /// <summary>
@@ -24,13 +24,32 @@ public static class NutritionHelper
     ///   Ví dụ: Ức gà 165 calo/100g, ăn 200g => (165 * 200) / 100 = 330 kcal.
     /// - Nếu là đơn vị đếm (quả, bát, tô, đĩa, hộp, phần...): Giá trị thực = Dinh dưỡng trên 1 đơn vị * Số lượng
     ///   Ví dụ: Trứng gà 78 calo/quả, ăn 2 quả => 78 * 2 = 156 kcal.
+    /// - Cơ chế bảo vệ thông minh: Nếu đơn vị là gói/cái/phần nhưng số lượng người dùng nhập >= 20 (ví dụ 100g, 120g, 150g)
+    ///   trong khi calo món >= 40 (chuẩn calo/100g), tự động hiểu là người dùng đang nhập theo gam để tránh bị nổ calo gấp 100 lần.
     /// </summary>
     public static decimal ScaleByUnit(decimal? value, decimal? quantity, string? unit)
     {
         if (value == null || quantity == null) return 0m;
-        return IsPer100Unit(unit)
-            ? (value.Value * quantity.Value) / 100m
-            : value.Value * quantity.Value;
+
+        // Nếu là đơn vị chuẩn 100g/100ml
+        if (IsPer100Unit(unit))
+        {
+            return (value.Value * quantity.Value) / 100m;
+        }
+
+        // Cơ chế bảo vệ thông minh (Sanity check):
+        // Nếu đơn vị là gói/cái/phần/hộp nhưng số lượng nhập >= 20 và calo >= 40,
+        // thực chất người dùng đang cân theo GRAM (khối lượng), tránh nhân sai 100 lần.
+        if (quantity.Value >= 20m && value.Value >= 40m)
+        {
+            var u = unit?.Trim().ToLowerInvariant() ?? "";
+            if (u == "cái" || u == "gói" || u == "phần" || u == "hop" || u == "hộp")
+            {
+                return (value.Value * quantity.Value) / 100m;
+            }
+        }
+
+        return value.Value * quantity.Value;
     }
 
     /// <summary>

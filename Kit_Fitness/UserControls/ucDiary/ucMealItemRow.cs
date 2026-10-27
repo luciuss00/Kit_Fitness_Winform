@@ -16,6 +16,7 @@ namespace Kit_Fitness.UserControls
         public NumericUpDown NumWeight => numWeight;
         public NumericUpDown NumCalories => numCalories;
         public Label LblUnit => lblUnit;
+        public Label LblCaloriesTitle => lblCaloriesTitle;
         public Panel PnlTrafficLight => pnlTrafficLight;
         public Button BtnDelete => btnDelete;
 

@@ -237,14 +237,49 @@ namespace Kit_Fitness.Forms
             // Sự kiện cập nhật
             itemRow.BtnDelete.Click += (s, ev) => RemoveItemRow(itemRow);
 
+            void UpdateRowUnitDisplay(Food? f)
+            {
+                string unit = !string.IsNullOrWhiteSpace(f?.Unit) ? f.Unit : itemRow.CbUnit.Text.Trim();
+                if (string.IsNullOrWhiteSpace(unit)) unit = "g";
+
+                itemRow.LblUnit.Text = unit;
+                SelectUnit(itemRow.CbUnit, unit);
+
+                bool isCountUnit = !NutritionHelper.IsPer100Unit(unit);
+                if (isCountUnit && (unit == "cái" || unit == "quả" || unit == "hộp" || unit == "bát" || unit == "đĩa" || unit == "gói"))
+                {
+                    itemRow.LblCaloriesTitle.Text = $"Calo/{unit}:";
+                    if (itemRow.NumWeight.Value >= 20)
+                    {
+                        itemRow.NumWeight.Value = 1;
+                    }
+                }
+                else
+                {
+                    itemRow.LblCaloriesTitle.Text = "Calo/100g:";
+                    if (itemRow.NumWeight.Value <= 5)
+                    {
+                        itemRow.NumWeight.Value = index switch { 1 => 150, 2 => 120, _ => 100 };
+                    }
+                }
+            }
+
             itemRow.CbFood.SelectedIndexChanged += (s, ev) =>
             {
-                if (itemRow.CbFood.SelectedItem is Food f && !string.IsNullOrEmpty(f.Unit))
+                if (itemRow.CbFood.SelectedItem is Food f)
                 {
-                    itemRow.LblUnit.Text = f.Unit;
-                    SelectUnit(itemRow.CbUnit, f.Unit);
+                    UpdateRowUnitDisplay(f);
                     itemRow.NumCalories.Value = Math.Min(itemRow.NumCalories.Maximum, Math.Max(itemRow.NumCalories.Minimum, f.Calories));
                 }
+                CalculateEstimatedNutrition();
+            };
+
+            itemRow.CbUnit.SelectedIndexChanged += (s, ev) =>
+            {
+                string u = itemRow.CbUnit.Text.Trim();
+                bool isCountUnit = !NutritionHelper.IsPer100Unit(u);
+                itemRow.LblUnit.Text = u;
+                itemRow.LblCaloriesTitle.Text = isCountUnit ? $"Calo/{u}:" : "Calo/100g:";
                 CalculateEstimatedNutrition();
             };
 
@@ -256,10 +291,9 @@ namespace Kit_Fitness.Forms
             itemRow.NumWeight.ValueChanged += (s, ev) => CalculateEstimatedNutrition();
             itemRow.NumCalories.ValueChanged += (s, ev) => CalculateEstimatedNutrition();
 
-            if (itemRow.CbFood.SelectedItem is Food initFood && !string.IsNullOrEmpty(initFood.Unit))
+            if (itemRow.CbFood.SelectedItem is Food initFood)
             {
-                itemRow.LblUnit.Text = initFood.Unit;
-                SelectUnit(itemRow.CbUnit, initFood.Unit);
+                UpdateRowUnitDisplay(initFood);
                 itemRow.NumCalories.Value = Math.Min(itemRow.NumCalories.Maximum, Math.Max(itemRow.NumCalories.Minimum, initFood.Calories));
             }
 
@@ -318,23 +352,23 @@ namespace Kit_Fitness.Forms
             foreach (var row in _itemRows)
             {
                 Food? food = GetFoodForRow(row);
+                string unit = row.CbUnit.Text.Trim();
+                if (string.IsNullOrEmpty(unit)) unit = food?.Unit ?? "g";
 
                 if (food != null)
                 {
-                    decimal weightRatio = row.NumWeight.Value / 100m;
-                    int itemCal = (int)(food.Calories * weightRatio);
+                    int itemCal = NutritionHelper.RoundToInt(NutritionHelper.ScaleByUnit(food.Calories, row.NumWeight.Value, unit));
                     totalCal += itemCal;
-                    totalP += (food.Protein ?? 0) * weightRatio;
-                    totalC += (food.Carbs ?? 0) * weightRatio;
-                    totalF += (food.Fat ?? 0) * weightRatio;
+                    totalP += NutritionHelper.ScaleByUnit(food.Protein ?? 0m, row.NumWeight.Value, unit);
+                    totalC += NutritionHelper.ScaleByUnit(food.Carbs ?? 0m, row.NumWeight.Value, unit);
+                    totalF += NutritionHelper.ScaleByUnit(food.Fat ?? 0m, row.NumWeight.Value, unit);
 
                     // Tính traffic light cho từng món dựa trên calo còn lại trong ngày
                     UpdateItemTrafficLight(row.PnlTrafficLight, itemCal);
                 }
                 else if (!string.IsNullOrWhiteSpace(row.CbFood.Text))
                 {
-                    decimal weightRatio = row.NumWeight.Value / 100m;
-                    int itemCal = (int)(row.NumCalories.Value * weightRatio);
+                    int itemCal = NutritionHelper.RoundToInt(NutritionHelper.ScaleByUnit(row.NumCalories.Value, row.NumWeight.Value, unit));
                     totalCal += itemCal;
                     UpdateItemTrafficLight(row.PnlTrafficLight, itemCal);
                 }
@@ -349,13 +383,13 @@ namespace Kit_Fitness.Forms
                 }
             }
 
-            if (lblCalories != null) lblCalories.Text = $"{(int)totalCal} Kcal";
-            if (lblProtein != null) lblProtein.Text = $"Đạm (P)\n{(int)totalP}g";
-            if (lblCarbs != null) lblCarbs.Text = $"Đường (C)\n{(int)totalC}g";
-            if (lblFat != null) lblFat.Text = $"Béo (F)\n{(int)totalF}g";
+            if (lblCalories != null) lblCalories.Text = $"{(int)Math.Round(totalCal)} Kcal";
+            if (lblProtein != null) lblProtein.Text = $"Đạm (P)\n{(int)Math.Round(totalP)}g";
+            if (lblCarbs != null) lblCarbs.Text = $"Đường (C)\n{(int)Math.Round(totalC)}g";
+            if (lblFat != null) lblFat.Text = $"Béo (F)\n{(int)Math.Round(totalF)}g";
 
             // Cập nhật nhãn trạng thái tổng bữa ăn
-            UpdateMealTrafficLightStatus((int)totalCal);
+            UpdateMealTrafficLightStatus((int)Math.Round(totalCal));
         }
 
         private Food? GetFoodForRow(ucMealItemRow row)
@@ -458,10 +492,13 @@ namespace Kit_Fitness.Forms
 
                 if (food != null)
                 {
-                    int caloriesPer100g = GetFoodForRow(row) == null
+                    string unit = row.CbUnit.Text.Trim();
+                    if (string.IsNullOrEmpty(unit)) unit = food.Unit ?? "g";
+
+                    int calories = GetFoodForRow(row) == null
                         ? (int)row.NumCalories.Value
                         : food.Calories;
-                    int itemCal = (int)(caloriesPer100g * (row.NumWeight.Value / 100m));
+                    int itemCal = NutritionHelper.RoundToInt(NutritionHelper.ScaleByUnit(calories, row.NumWeight.Value, unit));
                     string light = _mealLogService.CalculateTrafficLight(itemCal, _remainingDailyCalories);
                     mealItems.Add((food.Id, row.NumWeight.Value, light));
                 }
