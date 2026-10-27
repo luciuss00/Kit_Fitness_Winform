@@ -32,5 +32,25 @@ namespace Kit_Fitness.Repositories
                 .Where(w => w.UserId == userId && w.LogDate == date && !w.IsDeleted)
                 .Sum(w => w.BurnedCalories);
         }
+
+        public int GetTotalDurationMinutes(long userId, DateOnly date)
+        {
+            using var context = new KitFitnessContext();
+            return context.WorkoutLogs
+                .Where(w => w.UserId == userId && w.LogDate == date && !w.IsDeleted)
+                .Sum(w => w.DurationMinutes);
+        }
+
+        public bool Delete(long workoutLogId)
+        {
+            using var context = new KitFitnessContext();
+            var log = context.WorkoutLogs.FirstOrDefault(w => w.Id == workoutLogId && !w.IsDeleted);
+            if (log == null) return false;
+
+            log.IsDeleted = true;
+            log.UpdatedAt = DateTime.Now;
+            context.SaveChanges();
+            return true;
+        }
     }
 }

@@ -38,10 +38,14 @@ namespace Kit_Fitness.Services
         {
             IConfigurationRoot configuration = new ConfigurationBuilder()
                 .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
                 .Build();
 
             ApiKey = configuration["ApiSettings:ApiKey"];
+            if (string.IsNullOrWhiteSpace(ApiKey))
+            {
+                ApiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY");
+            }
         }
 
         /// <summary>

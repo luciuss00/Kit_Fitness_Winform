@@ -25,6 +25,42 @@ namespace Kit_Fitness.Repositories
                 .ToList();
         }
 
+        public WeightLog? GetByUserAndDate(long userId, DateOnly logDate)
+        {
+            using var context = new KitFitnessContext();
+            return context.WeightLogs
+                .FirstOrDefault(w => w.UserId == userId && w.LogDate == logDate && !w.IsDeleted);
+        }
+
+        public WeightLog Upsert(long userId, DateOnly logDate, decimal weight, string? notes = null)
+        {
+            using var context = new KitFitnessContext();
+            var existing = context.WeightLogs
+                .FirstOrDefault(w => w.UserId == userId && w.LogDate == logDate && !w.IsDeleted);
+
+            if (existing != null)
+            {
+                existing.Weight = weight;
+                if (notes != null) existing.Notes = notes;
+                existing.UpdatedAt = DateTime.Now;
+                context.SaveChanges();
+                return existing;
+            }
+
+            var log = new WeightLog
+            {
+                UserId = userId,
+                LogDate = logDate,
+                Weight = weight,
+                Notes = notes,
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now
+            };
+            context.WeightLogs.Add(log);
+            context.SaveChanges();
+            return log;
+        }
+
         public WeightLog Add(WeightLog log)
         {
             using var context = new KitFitnessContext();

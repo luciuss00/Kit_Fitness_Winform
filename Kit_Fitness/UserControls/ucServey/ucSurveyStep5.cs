@@ -55,8 +55,9 @@ namespace Kit_Fitness.UserControls
             lblCarbVal.Text = $"{m.CarbGrams}g";
             lblFatVal.Text = $"{m.FatGrams}g";
 
-            // Summary
-            lblSummary.Text = $"BMR Cơ Bản: {m.Bmr} kcal     •     TDEE Duy Trì: {m.Tdee} kcal     •     Nước Tối Thiểu: {m.WaterMl} ml";
+            // Summary & ETA
+            string etaText = m.WeeksNeeded > 0 ? $"     •     Dự kiến: ~{m.WeeksNeeded} tuần ({m.EstimatedDate:dd/MM/yyyy})" : "";
+            lblSummary.Text = $"BMR Cơ Bản: {m.Bmr} kcal     •     TDEE Duy Trì: {m.Tdee} kcal     •     Nước Tối Thiểu: {m.WaterMl} ml{etaText}";
         }
 
         private string GetShortActivityName(string? activity)

@@ -90,18 +90,23 @@ namespace Kit_Fitness.UserControls
                 long userId = AppSession.CurrentUserId;
                 var today = DateOnly.FromDateTime(DateTime.Now);
 
-                // Header
+                // Header & Streak
                 var user = _profileService.GetProfile(userId);
+                var (streak, isLoggedToday) = _dashboardService.GetStreak(userId, today);
+                string streakBadge = streak > 0 ? $"   🔥 {streak} ngày chuỗi" : "   🌱 Khởi đầu hành trình";
                 lblDate.Text = $"HÔM NAY, {DateTime.Now:dd} THG {DateTime.Now:MM}";
-                lblGreeting.Text = $"Chào {user?.UserName ?? "Người dùng"}! 🌿";
+                lblGreeting.Text = $"Chào {user?.UserName ?? "Người dùng"}! 🌿{streakBadge}";
 
-                // Nutrition
+                // Nutrition & Goal Status
                 var nutrition = _dashboardService.GetDailyNutrition(userId, today);
+                var status = _dashboardService.GetCalorieStatus(userId, today);
+
                 lblCaloriesRemaining.Text = nutrition.CaloriesRemaining.ToString();
                 lblTargetCal.Text = $"● Mục tiêu ngày: {nutrition.TargetCalories} kcal";
                 lblConsumedCal.Text = $"● Đã nạp vào: {nutrition.CaloriesConsumed} kcal";
                 lblBurnedCal.Text = $"● Vận động đốt: {nutrition.CaloriesBurned} kcal";
-                lblGoal.Text = $"Mục tiêu: {_dashboardService.GetGoalDisplayName(user?.Goal)}";
+                lblGoal.Text = $"Mục tiêu: {_dashboardService.GetGoalDisplayName(user?.Goal)}   •   {status.BadgeText}";
+                lblGoal.ForeColor = status.ForeColor;
 
                 int calPercent = nutrition.TargetCalories > 0
                     ? Math.Min(100, nutrition.CaloriesConsumed * 100 / nutrition.TargetCalories)

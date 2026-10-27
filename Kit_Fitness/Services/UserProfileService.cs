@@ -67,13 +67,8 @@ namespace Kit_Fitness.Services
 
         public void LogWeight(long userId, decimal weight, string? notes = null)
         {
-            _weightLogRepo.Add(new WeightLog
-            {
-                UserId = userId,
-                Weight = weight,
-                LogDate = DateOnly.FromDateTime(DateTime.Now),
-                Notes = notes
-            });
+            var today = DateOnly.FromDateTime(DateTime.Now);
+            _weightLogRepo.Upsert(userId, today, weight, notes);
 
             var user = _userRepo.GetById(userId);
             if (user != null)

@@ -1,4 +1,6 @@
+using Kit_Fitness.Data;
 using Kit_Fitness.DTOs;
+using Kit_Fitness.Helpers;
 using Kit_Fitness.Models;
 using Kit_Fitness.Repositories;
 
@@ -70,7 +72,7 @@ namespace Kit_Fitness.Services
                             FoodName = li.Food?.Name ?? "Không xác định",
                             Quantity = li.Quantity,
                             Unit = li.Food?.Unit ?? "g",
-                            Calories = (int)(li.Food != null ? li.Food.Calories * li.Quantity / 100m : 0),
+                            Calories = NutritionHelper.RoundToInt(NutritionHelper.ScaleByUnit(li.Food?.Calories ?? 0, li.Quantity, li.Food?.Unit)),
                             TrafficLight = li.TrafficLight
                         }).ToList()
                 };
@@ -80,6 +82,47 @@ namespace Kit_Fitness.Services
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Tính chuỗi ngày liên tiếp ghi nhận nhật ký (Streak)
+        /// </summary>
+        public (int currentStreak, bool isLoggedToday) GetStreak(long userId, DateOnly today)
+        {
+            using var context = new KitFitnessContext();
+            var activeDates = context.DailyLogs
+                .Where(d => d.UserId == userId && !d.IsDeleted && d.TotalCalories > 0)
+                .Select(d => d.LogDate)
+                .Distinct()
+                .ToList();
+
+            var set = new HashSet<DateOnly>(activeDates);
+            if (set.Count == 0) return (0, false);
+
+            bool isLoggedToday = set.Contains(today);
+            int streak = 0;
+            var check = isLoggedToday ? today : today.AddDays(-1);
+            while (set.Contains(check))
+            {
+                streak++;
+                check = check.AddDays(-1);
+            }
+
+            return (streak, isLoggedToday);
+        }
+
+        /// <summary>
+        /// Đánh giá trạng thái calo hôm nay theo mục tiêu cân nặng
+        /// </summary>
+        public CalorieStatusResult GetCalorieStatus(long userId, DateOnly date)
+        {
+            var user = _userRepo.GetById(userId);
+            var logs = _dailyLogRepo.GetByUserAndDate(userId, date);
+            int totalCal = logs.Sum(l => l.TotalCalories);
+            int targetCal = user?.TargetCalories ?? 2000;
+            int itemsCount = logs.SelectMany(l => l.LogItems).Count(li => !li.IsDeleted);
+
+            return CalorieGoalEvaluator.EvaluateDailyCalorieStatus(user?.Goal, totalCal, targetCal, itemsCount);
         }
 
         /// <summary>
@@ -122,13 +165,13 @@ namespace Kit_Fitness.Services
         /// </summary>
         public string GetGoalDisplayName(string? goal)
         {
-            return goal switch
+            var norm = TrafficLightHelper.NormalizeGoal(goal);
+            return norm switch
             {
-                "LOSE_FAT" => "Giảm mỡ tự nhiên",
-                "GAIN_MUSCLE" => "Tăng cơ",
-                "MAINTAIN" => "Duy trì cân nặng",
-                "LOSE_WEIGHT" => "Giảm cân",
-                _ => "Chưa đặt mục tiêu"
+                "LOSE_WEIGHT" => "Giảm mỡ & Nhẹ người",
+                "GAIN_WEIGHT" => "Tăng cân & Phát triển cơ",
+                "MAINTAIN" => "Giữ dáng & Ăn tươi lành",
+                _ => "Duy trì cân nặng"
             };
         }
     }

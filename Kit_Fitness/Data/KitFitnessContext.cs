@@ -174,7 +174,6 @@ public partial class KitFitnessContext : DbContext
                 .HasColumnName("meal_traffic_light");
             entity.Property(e => e.MealType)
                 .HasMaxLength(50)
-                .IsUnicode(false)
                 .HasColumnName("meal_type");
             entity.Property(e => e.TotalCalories).HasColumnName("total_calories");
             entity.Property(e => e.TotalCarbs).HasColumnName("total_carbs");
@@ -232,7 +231,6 @@ public partial class KitFitnessContext : DbContext
                 .HasColumnName("type");
             entity.Property(e => e.Unit)
                 .HasMaxLength(50)
-                .IsUnicode(false)
                 .HasDefaultValue("g")
                 .HasColumnName("unit");
             entity.Property(e => e.UpdatedAt)
@@ -342,7 +340,6 @@ public partial class KitFitnessContext : DbContext
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.Category)
                 .HasMaxLength(100)
-                .IsUnicode(false)
                 .HasColumnName("category");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("(getdate())")
@@ -387,7 +384,6 @@ public partial class KitFitnessContext : DbContext
             entity.Property(e => e.FoodId).HasColumnName("food_id");
             entity.Property(e => e.MealType)
                 .HasMaxLength(50)
-                .IsUnicode(false)
                 .HasColumnName("meal_type");
             entity.Property(e => e.MenuId).HasColumnName("menu_id");
             entity.Property(e => e.Quantity)

@@ -42,23 +42,24 @@ namespace Kit_Fitness.Services
 
             int remainingBeforeMeal = targetCalories - caloriesAlreadyConsumed;
 
-            // 3. Tính toán dinh dưỡng cho các món mới
+            int mealPerDay = user?.MealPerDay > 0 ? user.MealPerDay : 3;
+
+            // 3. Tính toán dinh dưỡng cho các món mới dùng NutritionHelper
             int newCal = 0, newProtein = 0, newCarbs = 0, newFat = 0;
             foreach (var (foodId, quantity, _) in items)
             {
                 var food = _foodRepo.GetById(foodId);
                 if (food != null)
                 {
-                    decimal ratio = quantity / 100m;
-                    newCal += (int)(food.Calories * ratio);
-                    newProtein += (int)((food.Protein ?? 0) * ratio);
-                    newCarbs += (int)((food.Carbs ?? 0) * ratio);
-                    newFat += (int)((food.Fat ?? 0) * ratio);
+                    newCal += NutritionHelper.RoundToInt(NutritionHelper.ScaleByUnit(food.Calories, quantity, food.Unit));
+                    newProtein += NutritionHelper.RoundToInt(NutritionHelper.ScaleByUnit(food.Protein ?? 0, quantity, food.Unit));
+                    newCarbs += NutritionHelper.RoundToInt(NutritionHelper.ScaleByUnit(food.Carbs ?? 0, quantity, food.Unit));
+                    newFat += NutritionHelper.RoundToInt(NutritionHelper.ScaleByUnit(food.Fat ?? 0, quantity, food.Unit));
                 }
             }
 
-            // 4. Phân loại traffic light cho bữa ăn
-            string mealTrafficLight = CalculateTrafficLight(newCal, remainingBeforeMeal);
+            // 4. Phân loại traffic light cho bữa ăn theo mealPerDay và target calo
+            string mealTrafficLight = TrafficLightHelper.CalculateMealTrafficLight(mealPerDay, newCal, targetCalories);
 
             using var context = new KitFitnessContext();
 
@@ -75,10 +76,9 @@ namespace Kit_Fitness.Services
                 foreach (var (foodId, quantity, trafficLight) in items)
                 {
                     var food = _foodRepo.GetById(foodId);
-                    int itemCal = food != null ? (int)(food.Calories * (quantity / 100m)) : 0;
                     string itemLight = !string.IsNullOrEmpty(trafficLight)
                         ? trafficLight
-                        : CalculateTrafficLight(itemCal, remainingBeforeMeal);
+                        : (food != null ? TrafficLightHelper.ResolveFoodTrafficLight(food.Calories) : "GREEN");
 
                     var logItem = new LogItem
                     {
@@ -100,11 +100,11 @@ namespace Kit_Fitness.Services
                     .Where(li => li.DailyLogId == existingLog.Id && !li.IsDeleted)
                     .ToList();
 
-                existingLog.TotalCalories = allActiveItems.Sum(li => (int)((li.Food?.Calories ?? 0) * (li.Quantity / 100m)));
-                existingLog.TotalProtein = allActiveItems.Sum(li => (int)((li.Food?.Protein ?? 0) * (li.Quantity / 100m)));
-                existingLog.TotalCarbs = allActiveItems.Sum(li => (int)((li.Food?.Carbs ?? 0) * (li.Quantity / 100m)));
-                existingLog.TotalFat = allActiveItems.Sum(li => (int)((li.Food?.Fat ?? 0) * (li.Quantity / 100m)));
-                existingLog.MealTrafficLight = CalculateTrafficLight(existingLog.TotalCalories, remainingBeforeMeal);
+                existingLog.TotalCalories = allActiveItems.Sum(li => NutritionHelper.RoundToInt(NutritionHelper.ScaleByUnit(li.Food?.Calories ?? 0, li.Quantity, li.Food?.Unit)));
+                existingLog.TotalProtein = allActiveItems.Sum(li => NutritionHelper.RoundToInt(NutritionHelper.ScaleByUnit(li.Food?.Protein ?? 0, li.Quantity, li.Food?.Unit)));
+                existingLog.TotalCarbs = allActiveItems.Sum(li => NutritionHelper.RoundToInt(NutritionHelper.ScaleByUnit(li.Food?.Carbs ?? 0, li.Quantity, li.Food?.Unit)));
+                existingLog.TotalFat = allActiveItems.Sum(li => NutritionHelper.RoundToInt(NutritionHelper.ScaleByUnit(li.Food?.Fat ?? 0, li.Quantity, li.Food?.Unit)));
+                existingLog.MealTrafficLight = TrafficLightHelper.CalculateMealTrafficLight(mealPerDay, existingLog.TotalCalories, targetCalories);
                 existingLog.UpdatedAt = DateTime.Now;
 
                 context.SaveChanges();
@@ -134,10 +134,9 @@ namespace Kit_Fitness.Services
                 foreach (var (foodId, quantity, trafficLight) in items)
                 {
                     var food = _foodRepo.GetById(foodId);
-                    int itemCal = food != null ? (int)(food.Calories * (quantity / 100m)) : 0;
                     string itemLight = !string.IsNullOrEmpty(trafficLight)
                         ? trafficLight
-                        : CalculateTrafficLight(itemCal, remainingBeforeMeal);
+                        : (food != null ? TrafficLightHelper.ResolveFoodTrafficLight(food.Calories) : "GREEN");
 
                     context.LogItems.Add(new LogItem
                     {
@@ -186,10 +185,15 @@ namespace Kit_Fitness.Services
                 }
                 else
                 {
-                    dailyLog.TotalCalories = remainingItems.Sum(li => (int)((li.Food?.Calories ?? 0) * (li.Quantity / 100m)));
-                    dailyLog.TotalProtein = remainingItems.Sum(li => (int)((li.Food?.Protein ?? 0) * (li.Quantity / 100m)));
-                    dailyLog.TotalCarbs = remainingItems.Sum(li => (int)((li.Food?.Carbs ?? 0) * (li.Quantity / 100m)));
-                    dailyLog.TotalFat = remainingItems.Sum(li => (int)((li.Food?.Fat ?? 0) * (li.Quantity / 100m)));
+                    dailyLog.TotalCalories = remainingItems.Sum(li => NutritionHelper.RoundToInt(NutritionHelper.ScaleByUnit(li.Food?.Calories ?? 0, li.Quantity, li.Food?.Unit)));
+                    dailyLog.TotalProtein = remainingItems.Sum(li => NutritionHelper.RoundToInt(NutritionHelper.ScaleByUnit(li.Food?.Protein ?? 0, li.Quantity, li.Food?.Unit)));
+                    dailyLog.TotalCarbs = remainingItems.Sum(li => NutritionHelper.RoundToInt(NutritionHelper.ScaleByUnit(li.Food?.Carbs ?? 0, li.Quantity, li.Food?.Unit)));
+                    dailyLog.TotalFat = remainingItems.Sum(li => NutritionHelper.RoundToInt(NutritionHelper.ScaleByUnit(li.Food?.Fat ?? 0, li.Quantity, li.Food?.Unit)));
+
+                    var user = _userRepo.GetById(dailyLog.UserId);
+                    int target = user?.TargetCalories > 0 ? user.TargetCalories.Value : 2000;
+                    int mealPerDay = user?.MealPerDay > 0 ? user.MealPerDay : 3;
+                    dailyLog.MealTrafficLight = TrafficLightHelper.CalculateMealTrafficLight(mealPerDay, dailyLog.TotalCalories, target);
                 }
                 dailyLog.UpdatedAt = DateTime.Now;
             }
@@ -203,7 +207,7 @@ namespace Kit_Fitness.Services
         public (int remaining, int target, int consumed) GetDailyCaloriesStatus(long userId, DateOnly date)
         {
             var user = _userRepo.GetOrCreateDefault(userId);
-            int target = user?.TargetCalories > 0 ? user.TargetCalories.Value : 1450;
+            int target = user?.TargetCalories > 0 ? user.TargetCalories.Value : 2000;
 
             using var context = new KitFitnessContext();
             var logs = context.DailyLogs
@@ -216,28 +220,11 @@ namespace Kit_Fitness.Services
         }
 
         /// <summary>
-        /// Tính traffic light cho một món ăn hoặc bữa ăn dựa trên calo còn lại trong ngày
-        /// Xanh: Calo món ăn chiếm &lt;= 40% calo còn lại (an toàn / lành mạnh)
-        /// Vàng: Calo món ăn chiếm 40% - 70% calo còn lại (cần chú ý / cân nhắc)
-        /// Đỏ: Calo món ăn chiếm &gt; 70% calo còn lại hoặc đã vượt calo trong ngày
+        /// Tính traffic light cho một món ăn hoặc bữa ăn dựa trên calo và target calo
         /// </summary>
-        public string CalculateTrafficLight(int itemCalories, int remainingCalories)
+        public string CalculateTrafficLight(int itemCalories, int targetCalories)
         {
-            if (remainingCalories <= 0)
-            {
-                return "RED";
-            }
-
-            double ratio = (double)itemCalories / remainingCalories;
-            if (ratio <= 0.40)
-            {
-                return "GREEN";
-            }
-            if (ratio <= 0.70)
-            {
-                return "YELLOW";
-            }
-            return "RED";
+            return TrafficLightHelper.CalculateMealTrafficLight(3, itemCalories, targetCalories);
         }
 
         /// <summary>
@@ -278,7 +265,7 @@ namespace Kit_Fitness.Services
         }
 
         /// <summary>
-        /// Tính ước tính dinh dưỡng từ danh sách món
+        /// Tính ước tính dinh dưỡng từ danh sách món theo đơn vị
         /// </summary>
         public (int calories, int protein, int carbs, int fat) EstimateNutrition(List<(long foodId, decimal quantity)> items)
         {
@@ -289,11 +276,10 @@ namespace Kit_Fitness.Services
                 var food = _foodRepo.GetById(foodId);
                 if (food != null)
                 {
-                    decimal ratio = quantity / 100m;
-                    totalCal += (int)(food.Calories * ratio);
-                    totalProtein += (int)((food.Protein ?? 0) * ratio);
-                    totalCarbs += (int)((food.Carbs ?? 0) * ratio);
-                    totalFat += (int)((food.Fat ?? 0) * ratio);
+                    totalCal += NutritionHelper.RoundToInt(NutritionHelper.ScaleByUnit(food.Calories, quantity, food.Unit));
+                    totalProtein += NutritionHelper.RoundToInt(NutritionHelper.ScaleByUnit(food.Protein ?? 0, quantity, food.Unit));
+                    totalCarbs += NutritionHelper.RoundToInt(NutritionHelper.ScaleByUnit(food.Carbs ?? 0, quantity, food.Unit));
+                    totalFat += NutritionHelper.RoundToInt(NutritionHelper.ScaleByUnit(food.Fat ?? 0, quantity, food.Unit));
                 }
             }
 
