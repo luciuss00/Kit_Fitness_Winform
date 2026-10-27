@@ -271,7 +271,7 @@ namespace Kit_Fitness.UserControls
             cboIntensity.FormattingEnabled = true;
             cboIntensity.Location = new Point(422, 65);
             cboIntensity.Name = "cboIntensity";
-            cboIntensity.Size = new Size(205, 29);
+            cboIntensity.Size = new Size(339, 29);
             cboIntensity.TabIndex = 7;
             // 
             // lblDuration
@@ -327,7 +327,7 @@ namespace Kit_Fitness.UserControls
             lblIntensityDesc.ForeColor = Color.FromArgb(120, 100, 45);
             lblIntensityDesc.Location = new Point(272, 129);
             lblIntensityDesc.Name = "lblIntensityDesc";
-            lblIntensityDesc.Size = new Size(355, 25);
+            lblIntensityDesc.Size = new Size(330, 25);
             lblIntensityDesc.TabIndex = 12;
             lblIntensityDesc.Text = "⚡ MET 8.3 • Chạy vừa, nhịp thở đều";
             // 
@@ -340,11 +340,11 @@ namespace Kit_Fitness.UserControls
             btnAddWorkout.FlatStyle = FlatStyle.Flat;
             btnAddWorkout.Font = new Font("Segoe UI Semibold", 9.8F, FontStyle.Bold);
             btnAddWorkout.ForeColor = Color.White;
-            btnAddWorkout.Location = new Point(640, 65);
+            btnAddWorkout.Location = new Point(616, 124);
             btnAddWorkout.Name = "btnAddWorkout";
-            btnAddWorkout.Size = new Size(122, 90);
+            btnAddWorkout.Size = new Size(145, 33);
             btnAddWorkout.TabIndex = 13;
-            btnAddWorkout.Text = "＋ Lưu\r\nbuổi tập";
+            btnAddWorkout.Text = "＋ Lưu buổi tập";
             btnAddWorkout.UseVisualStyleBackColor = false;
             // 
             // pnlSummary

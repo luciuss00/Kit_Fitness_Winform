@@ -36,6 +36,8 @@ namespace Kit_Fitness.UserControls
             WireEvents();
             ResizeDateNavigation();
             pnlHeader.Resize += (s, e) => ResizeDateNavigation();
+            LayoutEntryControls();
+            pnlEntry.Resize += (s, e) => LayoutEntryControls();
             LoadData();
         }
 
@@ -280,6 +282,32 @@ namespace Kit_Fitness.UserControls
             btnNextDay.Left = lblSelectedDate.Right + 12;
             btnNextDay.Top = btnPreviousDay.Top;
             lblSubtitle.Top = Math.Max(lblTitle.Bottom, btnPreviousDay.Bottom) + 4;
+        }
+
+        private void LayoutEntryControls()
+        {
+            int rightMargin = 16;
+            int availableWidth = pnlEntry.ClientSize.Width;
+
+            // Nút Lưu buổi tập luôn ở góc phải Row 2, cùng cao độ với ô thời gian / calo
+            btnAddWorkout.Width = 145;
+            btnAddWorkout.Height = 33;
+            btnAddWorkout.Top = numCalories.Top;
+            btnAddWorkout.Left = Math.Max(numCalories.Right + 20, availableWidth - rightMargin - btnAddWorkout.Width);
+
+            // cboIntensity mở rộng hết phần còn lại của Row 1
+            int cboIntensityRight = availableWidth - rightMargin;
+            if (cboIntensityRight > cboIntensity.Left + 50)
+            {
+                cboIntensity.Width = cboIntensityRight - cboIntensity.Left;
+            }
+
+            // lblIntensityDesc nằm gọn giữa numCalories và btnAddWorkout
+            int descRight = btnAddWorkout.Left - 12;
+            if (descRight > lblIntensityDesc.Left)
+            {
+                lblIntensityDesc.Width = descRight - lblIntensityDesc.Left;
+            }
         }
 
         private void AddWorkout()
