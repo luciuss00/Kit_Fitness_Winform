@@ -362,14 +362,21 @@ namespace Kit_Fitness.Helpers
         }
 
         /// <summary>
-        /// Tính toán lượng Calories tiêu thụ theo chuẩn khoa học MET:
-        /// Calories = round(MET * Weight(kg) * (Minutes / 60))
-        /// Trọng lượng mặc định 55kg nếu chưa thiết lập hoặc <= 0
+        /// Tính toán lượng Calories tiêu thụ theo chuẩn khoa học MET (ACSM & Stanford):
+        /// Công thức: Calories = round(MET * Weight(kg) * (DurationMinutes / 60))
+        /// - 1 MET = 1 kcal/kg/giờ (Mức năng lượng tiêu hao khi nghỉ ngơi tĩnh)
+        /// - Cân nặng: Lấy cân nặng thực tế của user (nếu chưa có thì lấy mặc định khoa học 55.0 kg)
+        /// - Thời gian: Đổi phút ra giờ (minutes / 60.0)
         /// </summary>
         public static int CalculateBurnedCalories(double met, double? weightKg, int durationMinutes)
         {
+            // effectiveWeight: Trọng lượng hiệu dụng để tính toán. Nếu user chưa nhập cân nặng thì fallback về 55kg
             double effectiveWeight = (weightKg.HasValue && weightKg.Value > 0) ? weightKg.Value : 55.0;
+
+            // minutes: Số phút tập tối thiểu là 1 phút để tránh phép chia ra số âm hoặc 0
             int minutes = Math.Max(1, durationMinutes);
+
+            // Công thức vật lý tiêu hao năng lượng: MET * kg * giờ
             return (int)Math.Round(met * effectiveWeight * (minutes / 60.0));
         }
     }

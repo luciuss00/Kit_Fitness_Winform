@@ -1,23 +1,34 @@
 namespace Kit_Fitness.Helpers;
 
+/// <summary>
+/// Kết quả đánh giá trạng thái calo hàng ngày (Traffic Light)
+/// </summary>
 public class CalorieStatusResult
 {
-    public string TrafficLight { get; set; } = "GREEN";
-    public string BadgeText { get; set; } = string.Empty;
-    public string BadgeStyle { get; set; } = "fresh";
-    public string Message { get; set; } = string.Empty;
-    public Color ForeColor { get; set; } = Color.FromArgb(47, 82, 51);
-    public Color BackColor { get; set; } = Color.FromArgb(235, 242, 235);
+    public string TrafficLight { get; set; } = "GREEN"; // Màu đèn: GREEN, YELLOW, RED
+    public string BadgeText { get; set; } = string.Empty; // Chữ hiển thị trên huy hiệu (VD: ĐẠT CHUẨN, LƯU Ý)
+    public string BadgeStyle { get; set; } = "fresh";     // Kiểu dáng CSS/Giao diện
+    public string Message { get; set; } = string.Empty;    // Lời khuyên dinh dưỡng cụ thể
+    public Color ForeColor { get; set; } = Color.FromArgb(47, 82, 51); // Màu chữ
+    public Color BackColor { get; set; } = Color.FromArgb(235, 242, 235); // Màu nền huy hiệu
 }
 
 public static class CalorieGoalEvaluator
 {
+    /// <summary>
+    /// Thuật toán đánh giá chế độ ăn uống theo cơ chế Đèn Giao Thông (Traffic Light System)
+    /// </summary>
+    /// <param name="goal">Mục tiêu của người dùng (Giảm cân / Tăng cân / Giữ dáng)</param>
+    /// <param name="totalCalories">Tổng calo thực tế đã nạp trong ngày (kcal)</param>
+    /// <param name="targetCalories">Mục tiêu calo hàng ngày theo kế hoạch TDEE (kcal)</param>
+    /// <param name="itemsCount">Số lượng món ăn đã ghi nhận trong ngày</param>
     public static CalorieStatusResult EvaluateDailyCalorieStatus(
         string? goal,
         decimal totalCalories,
         decimal targetCalories,
         int itemsCount = 1)
     {
+        // 1. Trường hợp người dùng chưa ghi nhận món nào trong ngày
         if (itemsCount == 0 || totalCalories <= 0)
         {
             return new CalorieStatusResult
@@ -31,6 +42,7 @@ public static class CalorieGoalEvaluator
             };
         }
 
+        // 2. Trường hợp chưa cấu hình mục tiêu calo (targetCalories <= 0)
         if (targetCalories <= 0)
         {
             return new CalorieStatusResult
@@ -44,14 +56,19 @@ public static class CalorieGoalEvaluator
             };
         }
 
+        // ratio: Tỷ lệ phần trăm (%) calo đã nạp vào so với calo mục tiêu (VD: ăn 1500/2000 => ratio = 75%)
         decimal ratio = (totalCalories / targetCalories) * 100.0m;
+
+        // normGoal: Chuẩn hóa chuỗi mục tiêu về 3 mã chuẩn duy nhất: "GAIN_WEIGHT", "LOSE_WEIGHT", "MAINTAIN"
         string normGoal = TrafficLightHelper.NormalizeGoal(goal);
 
         switch (normGoal)
         {
+            // ================= MỤC TIÊU 1: TĂNG CÂN & TĂNG CƠ (GAIN_WEIGHT) =================
             case "GAIN_WEIGHT":
                 if (ratio < 75m)
                 {
+                    // Nạp < 75%: Đèn ĐỎ - Quá ít calo, không thể tăng cân
                     return new CalorieStatusResult
                     {
                         TrafficLight = "RED",
@@ -64,6 +81,7 @@ public static class CalorieGoalEvaluator
                 }
                 if (ratio < 93m)
                 {
+                    // Nạp 75% - 93%: Đèn VÀNG - Đang tiến gần, cần nạp thêm một chút để thặng dư
                     return new CalorieStatusResult
                     {
                         TrafficLight = "YELLOW",
@@ -76,6 +94,7 @@ public static class CalorieGoalEvaluator
                 }
                 if (ratio <= 110m)
                 {
+                    // Nạp 93% - 110%: Đèn XANH - Mức thặng dư lý tưởng (+10% đến +15%) để tăng cơ nạc bền vững
                     return new CalorieStatusResult
                     {
                         TrafficLight = "GREEN",
@@ -86,6 +105,7 @@ public static class CalorieGoalEvaluator
                         BackColor = Color.FromArgb(235, 242, 235)
                     };
                 }
+                // Nạp > 110%: Đèn ĐỎ - Vượt quá ngưỡng thặng dư nạc, tích mỡ thừa ngoài ý muốn
                 return new CalorieStatusResult
                 {
                     TrafficLight = "RED",
@@ -96,9 +116,11 @@ public static class CalorieGoalEvaluator
                     BackColor = Color.FromArgb(252, 236, 233)
                 };
 
+            // ================= MỤC TIÊU 2: GIỮ DÁNG & DUY TRÌ (MAINTAIN) =================
             case "MAINTAIN":
                 if (ratio < 80m)
                 {
+                    // Nạp < 80%: Đèn VÀNG - Thiếu hụt calo, duy trì lâu sẽ bị sụt cân
                     return new CalorieStatusResult
                     {
                         TrafficLight = "YELLOW",
@@ -111,6 +133,7 @@ public static class CalorieGoalEvaluator
                 }
                 if (ratio <= 105m)
                 {
+                    // Nạp 80% - 105%: Đèn XANH - Nạp vào = Tiêu hao, vóc dáng giữ nguyên ổn định
                     return new CalorieStatusResult
                     {
                         TrafficLight = "GREEN",
@@ -123,6 +146,7 @@ public static class CalorieGoalEvaluator
                 }
                 if (ratio <= 112m)
                 {
+                    // Nạp 105% - 112%: Đèn VÀNG - Chạm trần calo duy trì
                     return new CalorieStatusResult
                     {
                         TrafficLight = "YELLOW",
@@ -133,6 +157,7 @@ public static class CalorieGoalEvaluator
                         BackColor = Color.FromArgb(255, 249, 219)
                     };
                 }
+                // Nạp > 112%: Đèn ĐỎ - Ăn dư thừa, dễ tăng cân ngoài mong muốn
                 return new CalorieStatusResult
                 {
                     TrafficLight = "RED",
@@ -143,10 +168,12 @@ public static class CalorieGoalEvaluator
                     BackColor = Color.FromArgb(252, 236, 233)
                 };
 
+            // ================= MỤC TIÊU 3: GIẢM MỠ & GIẢM CÂN (LOSE_WEIGHT) =================
             case "LOSE_WEIGHT":
             default:
                 if (ratio < 60m)
                 {
+                    // Nạp < 60%: Đèn VÀNG - Nhịn ăn quá đà, suy giảm trao đổi chất và mất cơ
                     return new CalorieStatusResult
                     {
                         TrafficLight = "YELLOW",
@@ -159,6 +186,7 @@ public static class CalorieGoalEvaluator
                 }
                 if (ratio <= 85m)
                 {
+                    // Nạp 60% - 85%: Đèn XANH - Thâm hụt lý tưởng, cơ thể đốt mỡ tự nhiên
                     return new CalorieStatusResult
                     {
                         TrafficLight = "GREEN",
@@ -171,6 +199,7 @@ public static class CalorieGoalEvaluator
                 }
                 if (ratio <= 105m)
                 {
+                    // Nạp 85% - 105%: Đèn XANH - Hoàn thành mục tiêu ngân sách calo giảm mỡ
                     return new CalorieStatusResult
                     {
                         TrafficLight = "GREEN",
@@ -181,6 +210,7 @@ public static class CalorieGoalEvaluator
                         BackColor = Color.FromArgb(235, 242, 235)
                     };
                 }
+                // Nạp > 105%: Đèn ĐỎ - Vượt quá ngân sách calo giảm cân
                 return new CalorieStatusResult
                 {
                     TrafficLight = "RED",

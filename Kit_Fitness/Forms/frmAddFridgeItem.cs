@@ -6,13 +6,19 @@ namespace Kit_Fitness.Forms
 {
     public partial class frmAddFridgeItem : Form
     {
-        private readonly FridgeService _fridgeService = new();
-        private readonly MealLogService _mealLogService = new();
+        // DEPENDENCIES: Các dịch vụ nghiệp vụ mà Form này phụ thuộc vào.
+        // Khởi tạo trực tiếp (Direct Instantiation bằng toán tử new), đánh dấu readonly để chống bị gán đè/null giữa chừng.
+        private readonly FridgeService _fridgeService = new();     // Xử lý thêm thực phẩm vào tủ lạnh
+        private readonly MealLogService _mealLogService = new();   // Lấy danh sách món ăn & tạo món mới
+
+        // INTERNAL STATE: Biến trường nội bộ lưu danh sách Food để hiển thị lên ComboBox cbFood
         private List<Food> _foods = new();
 
         public frmAddFridgeItem(string defaultStorage = "CHILL")
         {
             InitializeComponent();
+            
+            // Gọi hàm nạp danh sách món ăn từ SQL Server vào ComboBox ngay sau khi vẽ giao diện
             LoadFoods();
 
             if (defaultStorage == "FREEZER")

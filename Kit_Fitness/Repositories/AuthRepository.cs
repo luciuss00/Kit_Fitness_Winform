@@ -42,6 +42,8 @@ public sealed class AuthRepository
             return (false, "Tên tài khoản này đã được đăng ký.", 0, string.Empty, string.Empty);
         }
 
+        // Database Transaction: Đảm bảo tính nguyên tố (Atomic)
+        // Cả 2 bảng Users và Accounts cùng tạo thành công thì mới Commit, nếu có lỗi thì Rollback (không bị rác dữ liệu)
         using var transaction = context.Database.BeginTransaction();
         try
         {
@@ -65,6 +67,8 @@ public sealed class AuthRepository
             {
                 UserId       = user.Id,
                 Email        = normalizedUserName,   // lưu username vào cột email
+                // MÃ HÓA MẬT KHẨU: Dùng thuật toán băm một chiều BCrypt kèm Salt ngẫu nhiên
+                // Không bao giờ lưu mật khẩu dạng thô (Plain Text) vào database
                 PasswordHash = BCryptHasher.HashPassword(password),
                 RecoveryCode = recoveryHash,
                 Balance      = 0,
@@ -88,6 +92,9 @@ public sealed class AuthRepository
         }
     }
 
+    /// <summary>
+    /// Xử lý đăng nhập an toàn: Đối chiếu mật khẩu người dùng nhập với chuỗi băm trong DB bằng BCrypt.Verify
+    /// </summary>
     public (bool Success, string Message, long UserId, string UserName) Login(
         string userName,
         string password)
@@ -103,6 +110,8 @@ public sealed class AuthRepository
                 && a.Provider == "LOCAL"
                 && !a.User.IsDeleted);
 
+        // KIỂM TRA MẬT KHẨU: Dùng BCrypt.Verify để kiểm tra mật khẩu người dùng gõ
+        // so với chuỗi băm PasswordHash trong DB mà không cần phải giải mã
         if (account?.PasswordHash is null || !BCryptHasher.Verify(password, account.PasswordHash))
         {
             return (false, "Tên tài khoản hoặc mật khẩu không đúng.", 0, string.Empty);
