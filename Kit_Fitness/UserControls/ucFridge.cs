@@ -175,7 +175,13 @@ namespace Kit_Fitness.UserControls
                 btnTabSuggestions.ForeColor = Color.FromArgb(34, 76, 56);
                 btnTabFridge.BackColor = Color.FromArgb(240, 236, 228);
                 btnTabFridge.ForeColor = Color.FromArgb(100, 100, 95);
-                _ = LoadAiSuggestionsAsync();
+
+                // Không tự động gọi API Gemini khi vào tab.
+                // Chỉ hiển thị panel chờ nếu chưa từng bấm nút gợi ý lần nào.
+                if (_aiCardPanels.Count == 0 && flpSuggestions.Controls.Count == 0)
+                {
+                    ShowEmptyAiPromptPanel();
+                }
             }
         }
 
@@ -526,9 +532,64 @@ namespace Kit_Fitness.UserControls
             return true;
         }
 
+        private void ShowEmptyAiPromptPanel()
+        {
+            FitSuggestionsWidth();
+            flpSuggestions.Controls.Clear();
+
+            var pnlEmpty = new Panel
+            {
+                Size = new Size(Math.Max(500, flpSuggestions.ClientSize.Width - 40), 220),
+                BackColor = Color.White,
+                Padding = new Padding(24),
+                Margin = new Padding(10, 20, 10, 20)
+            };
+
+            var lblIcon = new Label
+            {
+                Text = "👨‍🍳",
+                Font = new Font("Segoe UI", 32F),
+                TextAlign = ContentAlignment.MiddleCenter,
+                Dock = DockStyle.Top,
+                Height = 60
+            };
+
+            var lblPrompt = new Label
+            {
+                Text = "Nhấn nút bên dưới hoặc nút '✨ Gợi ý lại bằng AI' ở trên\nđể Gemini AI phân tích nguyên liệu trong tủ lạnh và đề xuất thực đơn phù hợp cho bạn!",
+                Font = new Font("Segoe UI", 10F),
+                ForeColor = Color.FromArgb(70, 80, 75),
+                TextAlign = ContentAlignment.MiddleCenter,
+                Dock = DockStyle.Top,
+                Height = 55
+            };
+
+            var btnStart = new Button
+            {
+                Text = "✨ Bắt đầu gợi ý món ăn bằng AI",
+                Font = new Font("Segoe UI Semibold", 10.5F, FontStyle.Bold),
+                BackColor = Color.FromArgb(41, 75, 54),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                FlatAppearance = { BorderSize = 0 },
+                Size = new Size(280, 44),
+                Cursor = Cursors.Hand
+            };
+            btnStart.Location = new Point((pnlEmpty.Width - btnStart.Width) / 2, 140);
+            btnStart.Anchor = AnchorStyles.Top;
+            btnStart.Click += async (s, e) => await LoadAiSuggestionsAsync();
+
+            pnlEmpty.Controls.Add(btnStart);
+            pnlEmpty.Controls.Add(lblPrompt);
+            pnlEmpty.Controls.Add(lblIcon);
+
+            flpSuggestions.Controls.Add(pnlEmpty);
+        }
+
         // **
         private async Task LoadAiSuggestionsAsync()
         {
+            btnRefreshAi.Enabled = false;
             FitSuggestionsWidth();
             flpSuggestions.Controls.Clear();
 
@@ -630,6 +691,7 @@ namespace Kit_Fitness.UserControls
                     flpSuggestions.Controls.Add(card);
                 }
 
+                btnRefreshAi.Text = "🔄 Đổi thực đơn khác (AI)";
                 UpdateSuggestionsLayout();
             }
             catch (InvalidOperationException ex) when (ex.Message.Contains("API Key"))
@@ -651,6 +713,10 @@ namespace Kit_Fitness.UserControls
                 };
                 pnlErr.Controls.Add(lblErr);
                 flpSuggestions.Controls.Add(pnlErr);
+            }
+            finally
+            {
+                btnRefreshAi.Enabled = true;
             }
         }
 
