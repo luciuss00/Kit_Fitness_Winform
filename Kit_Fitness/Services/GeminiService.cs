@@ -16,9 +16,9 @@ namespace Kit_Fitness.Services
     {
         private readonly string? ApiKey;
 
-        // Model Gemini mặc định (nâng cấp lên gemini-3.8-flash)
+        // Chỉ sử dụng duy nhất model gemini-3.8-flash, không switch sang model nào khác
         public const string DefaultModelId = "gemini-3.8-flash";
-        public string ModelId { get; }
+        public string ModelId => DefaultModelId;
 
         // v1beta hỗ trợ đầy đủ generationConfig (responseMimeType, thinkingConfig...)
         private const string BaseUrl =
@@ -47,15 +47,11 @@ namespace Kit_Fitness.Services
             {
                 ApiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY");
             }
-
-            string? configuredModel = configuration["ApiSettings:ModelId"];
-            ModelId = string.IsNullOrWhiteSpace(configuredModel) ? DefaultModelId : configuredModel;
         }
 
         public GeminiService(string? apiKey, string? modelId = null)
         {
             ApiKey = apiKey;
-            ModelId = string.IsNullOrWhiteSpace(modelId) ? DefaultModelId : modelId;
         }
 
         /// <summary>
@@ -97,61 +93,26 @@ namespace Kit_Fitness.Services
             };
 
             string jsonBody = JsonSerializer.Serialize(requestBody);
-            string[] modelsToTry = { ModelId, "gemini-3.8-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash" };
-            string lastError = "";
+            string model = "gemini-3.8-flash";
+            string url = string.Format(BaseUrl, model);
 
-            foreach (var model in modelsToTry.Distinct())
+            using var request = new HttpRequestMessage(HttpMethod.Post, url)
             {
-                string url = string.Format(BaseUrl, model);
-                using var request = new HttpRequestMessage(HttpMethod.Post, url)
-                {
-                    Content = new StringContent(jsonBody, Encoding.UTF8, "application/json")
-                };
-                request.Headers.Add("x-goog-api-key", ApiKey);
+                Content = new StringContent(jsonBody, Encoding.UTF8, "application/json")
+            };
+            request.Headers.Add("x-goog-api-key", ApiKey);
 
-                HttpResponseMessage response;
-                try
-                {
-                    response = await _httpClient.SendAsync(request);
-                }
-                catch (TaskCanceledException)
-                {
-                    lastError = $"Timeout phản hồi từ model {model}.";
-                    continue;
-                }
+            using var response = await _httpClient.SendAsync(request);
+            string responseJson = await response.Content.ReadAsStringAsync();
 
-                using (response)
-                {
-                    string responseJson = await response.Content.ReadAsStringAsync();
-
-                    if (response.StatusCode == System.Net.HttpStatusCode.NotFound ||
-                        response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
-                    {
-                        lastError = responseJson;
-                        continue;
-                    }
-
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        lastError = $"Gemini API [{model}] lỗi [{(int)response.StatusCode} {response.StatusCode}]: {responseJson}";
-                        continue;
-                    }
-
-                    try
-                    {
-                        var suggestions = ParseGeminiResponse(responseJson);
-                        var withinLimit = suggestions.Where(s => s.Calories <= caloriesRemaining).ToList();
-                        return withinLimit.Count > 0 ? withinLimit : suggestions;
-                    }
-                    catch (Exception ex)
-                    {
-                        lastError = $"Lỗi đọc kết quả AI từ model {model}: {ex.Message}";
-                        continue;
-                    }
-                }
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new HttpRequestException($"Gemini API [{model}] lỗi [{(int)response.StatusCode} {response.StatusCode}]: {responseJson}");
             }
 
-            throw new HttpRequestException($"Không thể lấy gợi ý món ăn qua Gemini AI. Lỗi: {lastError}");
+            var suggestions = ParseGeminiResponse(responseJson);
+            var withinLimit = suggestions.Where(s => s.Calories <= caloriesRemaining).ToList();
+            return withinLimit.Count > 0 ? withinLimit : suggestions;
         }
 
         /// <summary>
@@ -227,61 +188,24 @@ namespace Kit_Fitness.Services
             };
 
             string jsonBody = JsonSerializer.Serialize(requestBody);
+            string model = "gemini-3.8-flash";
+            string url = string.Format(BaseUrl, model);
 
-            // Thử model mặc định (gemini-3.8-flash), nếu 404/503/lỗi JSON thì fallback sang các model flash phổ biến
-            string[] modelsToTry = { ModelId, "gemini-3.8-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash" };
-            string lastError = "";
-
-            foreach (var model in modelsToTry.Distinct())
+            using var request = new HttpRequestMessage(HttpMethod.Post, url)
             {
-                string url = string.Format(BaseUrl, model);
-                using var request = new HttpRequestMessage(HttpMethod.Post, url)
-                {
-                    Content = new StringContent(jsonBody, Encoding.UTF8, "application/json")
-                };
-                request.Headers.Add("x-goog-api-key", ApiKey);
+                Content = new StringContent(jsonBody, Encoding.UTF8, "application/json")
+            };
+            request.Headers.Add("x-goog-api-key", ApiKey);
 
-                HttpResponseMessage response;
-                try
-                {
-                    response = await _httpClient.SendAsync(request);
-                }
-                catch (TaskCanceledException)
-                {
-                    lastError = $"Timeout phản hồi từ model {model}.";
-                    continue;
-                }
+            using var response = await _httpClient.SendAsync(request);
+            string responseJson = await response.Content.ReadAsStringAsync();
 
-                using (response)
-                {
-                    string responseJson = await response.Content.ReadAsStringAsync();
-
-                    if (response.StatusCode == System.Net.HttpStatusCode.NotFound ||
-                        response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
-                    {
-                        lastError = responseJson;
-                        continue;
-                    }
-
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        lastError = $"Gemini API [{model}] lỗi [{(int)response.StatusCode} {response.StatusCode}]: {responseJson}";
-                        continue;
-                    }
-
-                    try
-                    {
-                        return ParseReceiptResponse(responseJson);
-                    }
-                    catch (Exception ex)
-                    {
-                        lastError = $"Lỗi đọc hóa đơn từ model {model}: {ex.Message}";
-                        continue;
-                    }
-                }
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new HttpRequestException($"Gemini API [{model}] lỗi [{(int)response.StatusCode} {response.StatusCode}]: {responseJson}");
             }
 
-            throw new HttpRequestException($"Không thể phân tích hóa đơn qua Gemini API. Lỗi: {lastError}");
+            return ParseReceiptResponse(responseJson);
         }
 
         public async Task<AiMealPhotoAnalysis> AnalyzeMealPhotoAsync(string imagePath)
@@ -325,89 +249,53 @@ namespace Kit_Fitness.Services
             };
 
             string jsonBody = JsonSerializer.Serialize(requestBody);
-            string[] modelsToTry = { ModelId, "gemini-3.8-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash" };
-            string lastError = string.Empty;
+            string model = "gemini-3.8-flash";
 
-            foreach (string model in modelsToTry.Distinct())
+            using var request = new HttpRequestMessage(HttpMethod.Post, string.Format(BaseUrl, model))
             {
-                using var request = new HttpRequestMessage(HttpMethod.Post, string.Format(BaseUrl, model))
-                {
-                    Content = new StringContent(jsonBody, Encoding.UTF8, "application/json")
-                };
-                request.Headers.Add("x-goog-api-key", ApiKey);
+                Content = new StringContent(jsonBody, Encoding.UTF8, "application/json")
+            };
+            request.Headers.Add("x-goog-api-key", ApiKey);
 
-                HttpResponseMessage response;
-                try
-                {
-                    response = await _httpClient.SendAsync(request);
-                }
-                catch (TaskCanceledException)
-                {
-                    lastError = $"Timeout phản hồi từ model {model}.";
-                    continue;
-                }
+            using var response = await _httpClient.SendAsync(request);
+            string responseJson = await response.Content.ReadAsStringAsync();
 
-                using (response)
-                {
-                    string responseJson = await response.Content.ReadAsStringAsync();
-                    if (response.StatusCode == System.Net.HttpStatusCode.NotFound ||
-                        response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
-                    {
-                        lastError = responseJson;
-                        continue;
-                    }
-
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        lastError = $"Gemini API [{model}] lỗi [{(int)response.StatusCode} {response.StatusCode}]: {responseJson}";
-                        continue;
-                    }
-
-                    try
-                    {
-                        var root = JsonNode.Parse(responseJson);
-                        var candidate = root?["candidates"]?[0];
-                        string? text = null;
-                        if (candidate?["content"]?["parts"] is JsonArray parts)
-                        {
-                            text = string.Concat(parts
-                                .Where(part => part?["thought"]?.GetValue<bool>() != true)
-                                .Select(part => part?["text"]?.GetValue<string>()));
-                        }
-
-                        if (string.IsNullOrWhiteSpace(text))
-                        {
-                            lastError = $"Model {model} không trả về nội dung.";
-                            continue;
-                        }
-
-                        text = Regex.Replace(text, @"^\s*```(?:json)?\s*", "", RegexOptions.IgnoreCase);
-                        text = Regex.Replace(text, @"\s*```\s*$", "").Trim();
-
-                        var jsonMatch = Regex.Match(text, @"\{[\s\S]*\}");
-                        if (jsonMatch.Success)
-                        {
-                            text = jsonMatch.Value;
-                        }
-
-                        var analysis = JsonSerializer.Deserialize<AiMealPhotoAnalysis>(text, _jsonOptions);
-                        if (analysis is null || string.IsNullOrWhiteSpace(analysis.FoodName) || analysis.QuantityGrams <= 0)
-                        {
-                            lastError = $"Model {model} trả về cấu trúc phân tích không hợp lệ.";
-                            continue;
-                        }
-
-                        return analysis;
-                    }
-                    catch (Exception ex)
-                    {
-                        lastError = $"Lỗi phân tích món ăn từ model {model}: {ex.Message}";
-                        continue;
-                    }
-                }
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new HttpRequestException($"Gemini API [{model}] lỗi [{(int)response.StatusCode} {response.StatusCode}]: {responseJson}");
             }
 
-            throw new HttpRequestException($"Không thể phân tích món ăn qua Gemini AI. Lỗi: {lastError}");
+            var root = JsonNode.Parse(responseJson);
+            var candidate = root?["candidates"]?[0];
+            string? text = null;
+            if (candidate?["content"]?["parts"] is JsonArray parts)
+            {
+                text = string.Concat(parts
+                    .Where(part => part?["thought"]?.GetValue<bool>() != true)
+                    .Select(part => part?["text"]?.GetValue<string>()));
+            }
+
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                throw new InvalidOperationException($"Model {model} không trả về nội dung.");
+            }
+
+            text = Regex.Replace(text, @"^\s*```(?:json)?\s*", "", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"\s*```\s*$", "").Trim();
+
+            var jsonMatch = Regex.Match(text, @"\{[\s\S]*\}");
+            if (jsonMatch.Success)
+            {
+                text = jsonMatch.Value;
+            }
+
+            var analysis = JsonSerializer.Deserialize<AiMealPhotoAnalysis>(text, _jsonOptions);
+            if (analysis is null || string.IsNullOrWhiteSpace(analysis.FoodName) || analysis.QuantityGrams <= 0)
+            {
+                throw new InvalidOperationException($"Model {model} trả về cấu trúc phân tích không hợp lệ.");
+            }
+
+            return analysis;
         }
 
         private static byte[] PrepareImageBytes(string imagePath, out string mimeType)
